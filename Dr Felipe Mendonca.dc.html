@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="./image-slot.js"></script>
+<script src="./pixel-canvas.js"></script>
+<script src="https://unpkg.com/lucide@0.292.0/dist/umd/lucide.js"></script>
+<script>
+  (function () {
+    function pascal(name) {
+      return String(name).split('-').map(function (p) { return p ? p.charAt(0).toUpperCase() + p.slice(1) : ''; }).join('');
+    }
+    function buildSvg(tuple, size, fill) {
+      var attrs = tuple[1] || {};
+      var children = tuple[2] || [];
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      Object.keys(attrs).forEach(function (k) { svg.setAttribute(k, attrs[k]); });
+      svg.setAttribute('width', size);
+      svg.setAttribute('height', size);
+      svg.style.display = 'block';
+      svg.style.stroke = 'currentColor';
+      if (fill) { svg.style.fill = fill; }
+      children.forEach(function (c) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', c[0]);
+        var ca = c[1] || {};
+        Object.keys(ca).forEach(function (k) { el.setAttribute(k, ca[k]); });
+        svg.appendChild(el);
+      });
+      return svg;
+    }
+    if (!customElements.get('dfm-icon')) {
+      customElements.define('dfm-icon', class extends HTMLElement {
+        connectedCallback() { this._render(); }
+        _render() {
+          if (this._done) return;
+          var L = window.lucide;
+          if (!L) { setTimeout(this._render.bind(this), 100); return; }
+          var name = pascal(this.getAttribute('name') || '');
+          var def = L.icons && (L.icons[name] || L.icons[name.charAt(0).toLowerCase() + name.slice(1)]);
+          if (!def) def = L[name];
+          if (!def && name === 'Cannabis') def = (L.icons && L.icons.Sprout) || L.Sprout || (L.icons && L.icons.Leaf) || L.Leaf;
+          if (!def) { setTimeout(this._render.bind(this), 100); return; }
+          this._done = true;
+          var size = this.getAttribute('width') || this.getAttribute('size') || 24;
+          var fill = this.getAttribute('fill') || (this.style && this.style.fill) || '';
+          var root = this.shadowRoot || this.attachShadow({ mode: 'open' });
+          root.innerHTML = '';
+          var st = document.createElement('style');
+          st.textContent = ':host{display:inline-flex;line-height:0;vertical-align:middle}';
+          root.appendChild(st);
+          root.appendChild(buildSvg(def, size, fill));
+        }
+      });
+    }
+  })();
+</script>
+<style>
+  :root {
+    --background: 40 12% 96%;
+    --foreground: 210 10% 14%;
+    --charcoal: 210 12% 18%;
+    --charcoal-deep: 210 14% 11%;
+    --charcoal-mid: 210 10% 24%;
+    --sand: 38 28% 93%;
+    --sand-mid: 38 22% 84%;
+    --sand-dark: 35 28% 72%;
+    --gold: 36 52% 48%;
+    --gold-light: 38 60% 64%;
+    --dark-bg: 210 14% 11%;
+    --dark-surface: 210 12% 16%;
+    --dark-border: 210 10% 24%;
+    --dark-text: 38 25% 93%;
+    --dark-muted: 210 8% 58%;
+    --gradient-hero: linear-gradient(160deg, hsl(210 14% 11%) 0%, hsl(210 12% 16%) 60%, hsl(210 14% 12%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(36 52% 48%) 0%, hsl(38 60% 56%) 100%);
+    --shadow-soft: 0 2px 20px -4px hsl(210 14% 11% / 0.08);
+    --shadow-elevated: 0 12px 40px -8px hsl(210 14% 11% / 0.18), 0 2px 8px -2px hsl(210 14% 11% / 0.06);
+    --shadow-card: 0 1px 4px hsl(210 14% 11% / 0.04), 0 4px 20px -6px hsl(210 14% 11% / 0.08);
+    --shadow-gold: 0 6px 24px -6px hsl(36 52% 48% / 0.4);
+    --shadow-glow: 0 0 50px -10px hsl(36 52% 48% / 0.3);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  h1,h2,h3,h4,h5,h6 { font-family: 'Playfair Display', Georgia, serif; letter-spacing: -0.01em; margin: 0; }
+  p { margin: 0; line-height: 1.7; }
+  a { text-decoration: none; }
+  .dfm-link-underline { position: relative; }
+  .dfm-link-underline::after { content:''; position:absolute; left:0; bottom:-2px; width:0; height:1px; background:hsl(var(--gold)); transition:width .3s ease; }
+  .dfm-link-underline:hover::after { width:100%; }
+  .texture-paper { position: relative; }
+  .texture-paper::after { content:''; position:absolute; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:256px 256px; background-repeat:repeat; pointer-events:none; z-index:0; }
+  .texture-paper-dark::after { opacity:0.03; mix-blend-mode:soft-light; }
+  .texture-paper-light::after { opacity:0.06; mix-blend-mode:multiply; }
+  .texture-paper > * { position: relative; z-index: 1; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .dfm-faq-chevron { transform: rotate(180deg); }
+  @keyframes dfm-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes dfm-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes dfm-ping { 75%,100% { transform: scale(2); opacity: 0; } }
+  @keyframes dfm-fadeup { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+  .dfm-spin-slow { animation: dfm-spin 60s linear infinite; }
+  .dfm-reveal { animation: none; }
+  /* Responsive grids (mobile-first) */
+  .dfm-hero-grid, .dfm-2col, .dfm-feature-grid, .dfm-spec-grid, .dfm-steps, .dfm-info-grid, .dfm-testi-grid, .dfm-footer-grid { grid-template-columns: 1fr !important; }
+  .dfm-pillars-grid { grid-template-columns: repeat(2,1fr) !important; }
+  .dfm-nav-desktop, .dfm-nav-cta { display: none !important; }
+  @media (min-width:640px) {
+    .dfm-feature-grid, .dfm-spec-grid, .dfm-info-grid { grid-template-columns: repeat(2,1fr) !important; }
+    .dfm-nav-cta { display: inline-flex !important; }
+  }
+  @media (min-width:768px) {
+    .dfm-pillars-grid, .dfm-steps, .dfm-testi-grid { grid-template-columns: repeat(3,1fr) !important; }
+    .dfm-footer-grid { grid-template-columns: 2fr 1fr 1fr !important; }
+  }
+  @media (min-width:1024px) {
+    .dfm-hero-grid, .dfm-2col { grid-template-columns: repeat(2,1fr) !important; }
+    .dfm-pillars-grid, .dfm-info-grid { grid-template-columns: repeat(4,1fr) !important; }
+    .dfm-spec-grid { grid-template-columns: repeat(3,1fr) !important; }
+    .dfm-nav-desktop { display: flex !important; }
+    .dfm-hero-text { order: 1 !important; }
+    .dfm-hero-img { order: 2 !important; }
+  }
+  @media (min-width:1280px) {
+    .dfm-spec-grid { grid-template-columns: repeat(5,1fr) !important; }
+  }
+  @media (max-width:560px) {
+    .dfm-wheel-node { width: 84px !important; gap: 0.2rem !important; }
+    .dfm-wheel-node span { font-size: 9px !important; }
+    .dfm-wheel-ic { width: 2rem !important; height: 2rem !important; }
+  }
+  /* Pillars wheel — motion + hover */
+  .dfm-wheel-node { cursor: pointer; }
+  .dfm-seg { transition: fill .45s ease, filter .45s ease, stroke .45s ease; }
+  .dfm-wheel-ic { transition: transform .4s cubic-bezier(.16,1,.3,1), background .4s ease, box-shadow .4s ease, border-color .4s ease; }
+  .dfm-wheel-node span { transition: color .3s ease, font-weight .3s ease; }
+  @keyframes dfm-wheel-in { from { opacity:0; transform:scale(.86) rotate(-12deg); } to { opacity:1; transform:scale(1) rotate(0deg); } }
+  .dfm-wheel.dfm-in { animation: dfm-wheel-in 1.25s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes dfm-ring-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+  @keyframes dfm-ring-spin-rev { from { transform:rotate(0deg); } to { transform:rotate(-360deg); } }
+  .dfm-ring-a { animation: dfm-ring-spin 95s linear infinite; transform-origin:center; }
+  .dfm-ring-b { animation: dfm-ring-spin-rev 130s linear infinite; transform-origin:center; }
+  @keyframes dfm-hub-breathe { 0%,100% { opacity:.4; transform:translate(-50%,-50%) scale(1); } 50% { opacity:.78; transform:translate(-50%,-50%) scale(1.1); } }
+  .dfm-hub-halo { animation: dfm-hub-breathe 5s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .dfm-ring-a, .dfm-ring-b, .dfm-hub-halo, .dfm-wheel.dfm-in { animation: none !important; }
+  }
+  /* Apple-style refinements — buttons & cards */
+  .dfm-btn-gold { transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s ease; will-change: transform; }
+  .dfm-btn-gold:hover { transform: translateY(-3px); box-shadow: var(--shadow-glow), var(--shadow-elevated); }
+  .dfm-btn-gold:active { transform: translateY(-1px) scale(.99); }
+  .dfm-btn-ghost { transition: transform .4s cubic-bezier(.16,1,.3,1), border-color .4s ease, background .4s ease; }
+  .dfm-btn-ghost:hover { transform: translateY(-3px); border-color: hsl(var(--sand)) !important; background: hsl(var(--sand) / 0.07); }
+  .dfm-feat-card { position: relative; overflow: hidden; transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s ease, border-color .5s ease; }
+  .dfm-feat-card > :not(pixel-canvas) { position: relative; z-index: 1; }
+  .dfm-feat-card:hover { transform: translateY(-7px); box-shadow: 0 26px 54px -20px hsl(210 14% 11% / 0.22); border-color: hsl(var(--gold) / 0.45) !important; }
+  .dfm-feat-ic { transition: transform .5s cubic-bezier(.16,1,.3,1), background .4s ease; }
+  .dfm-feat-card:hover .dfm-feat-ic { transform: scale(1.12); background: hsl(var(--gold) / 0.16) !important; }
+  .dfm-step-card { transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s ease, border-color .5s ease; }
+  .dfm-step-card:hover { transform: translateY(-6px); border-color: hsl(var(--gold) / 0.5) !important; box-shadow: 0 26px 52px -22px hsl(210 14% 6% / 0.7); }
+  .dfm-testi-card { transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s ease, border-color .5s ease; }
+  .dfm-testi-card:hover { transform: translateY(-7px); box-shadow: 0 26px 54px -20px hsl(210 14% 11% / 0.2); border-color: hsl(var(--gold) / 0.4) !important; }
+  .dfm-faq-item { transition: border-color .35s ease, background .35s ease; }
+  .dfm-faq-item:hover { border-color: hsl(var(--gold) / 0.4) !important; }
+  .dfm-faq-item[open] { border-color: hsl(var(--gold) / 0.5) !important; background: hsl(210 12% 18%) !important; }
+  .dfm-foot-link { transition: color .3s ease, padding-left .3s ease; }
+  .dfm-foot-link:hover { color: hsl(var(--gold)) !important; padding-left: 4px; }
+  .dfm-testi-cols { column-count: 1; column-gap: 1.5rem; }
+  @media (min-width:680px) { .dfm-testi-cols { column-count: 2; } }
+  @media (min-width:1024px) { .dfm-testi-cols { column-count: 3; } }
+  /* MapLibre — site identity (charcoal + gold) */
+  .maplibregl-popup-content { background: hsl(var(--charcoal)) !important; border: 1px solid hsl(var(--gold) / 0.3); border-radius: 0.85rem; padding: 0.7rem 0.95rem; box-shadow: var(--shadow-elevated); }
+  .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: hsl(var(--charcoal)) !important; }
+  .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: hsl(var(--charcoal)) !important; }
+  .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: hsl(var(--charcoal)) !important; }
+  .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: hsl(var(--charcoal)) !important; }
+  .maplibregl-ctrl-group { background: hsl(var(--charcoal)) !important; border: 1px solid hsl(var(--gold) / 0.3) !important; box-shadow: var(--shadow-card) !important; }
+  .maplibregl-ctrl-group button { background: transparent !important; }
+  .maplibregl-ctrl-group button + button { border-top: 1px solid hsl(var(--gold) / 0.2) !important; }
+  .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+  .maplibregl-ctrl-group button:hover { background: hsl(var(--gold) / 0.18) !important; }
+  .maplibregl-ctrl-attrib.maplibregl-compact { background: hsl(var(--charcoal-deep) / 0.85) !important; }
+  .maplibregl-ctrl-attrib a { color: hsl(var(--dark-muted)) !important; }
+  .maplibregl-cooperative-gesture-screen { background: hsl(210 14% 8% / 0.55); color: hsl(var(--dark-text)); font-family: 'Inter', system-ui, sans-serif; backdrop-filter: blur(1px); }
+  /* Testimonials — draggable card stack */
+  .dfm-stack-wrap { position: relative; width: min(440px, 92vw); height: 470px; margin: 1.5rem auto 0; }
+  .dfm-testi-stack-card { position: absolute; left: 0; right: 0; top: 0; margin: 0 auto; width: min(330px, 82vw); height: 440px; box-sizing: border-box; border-radius: 1.5rem; padding: 2rem 1.9rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem; text-align: center; background: #fff; border: 1px solid hsl(var(--sand-mid)); box-shadow: 0 24px 60px -24px hsl(210 14% 11% / 0.28); transition: transform .4s cubic-bezier(.16,1,.3,1); touch-action: pan-y; }
+  .dfm-tc-0 { transform: rotate(-5deg); z-index: 3; cursor: grab; }
+  .dfm-tc-0:active { cursor: grabbing; }
+  .dfm-tc-1 { transform: rotate(3deg) translateX(46px); z-index: 2; }
+  .dfm-tc-2 { transform: rotate(8deg) translateX(92px); z-index: 1; }
+  @media (prefers-reduced-motion: reduce) { .dfm-testi-stack-card { transition: none; } }
+  /* About — animated timeline */
+  .dfm-tl-progress { position: sticky; top: 84px; z-index: 6; height: 3px; width: 100%; background: hsl(var(--sand-mid) / 0.7); border-radius: 999px; overflow: hidden; }
+  .dfm-tl-bar { height: 100%; width: 0%; background: var(--gradient-gold); border-radius: 999px; transition: width .15s linear; }
+  .dfm-tl-rail { position: absolute; left: 19px; top: 6px; bottom: 6px; width: 2px; background: hsl(var(--sand-mid)); border-radius: 2px; }
+  .dfm-tl-railfill { position: absolute; left: 0; top: 0; width: 100%; height: 0%; background: var(--gradient-gold); border-radius: 2px; transition: height .15s linear; }
+  .dfm-tl-node { position: relative; padding-left: 56px; opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+  .dfm-tl-head { margin-top: 2.25rem; margin-bottom: 1rem; }
+  .dfm-tl-head:first-of-type { margin-top: 0; }
+  .dfm-tl-phase-title { font-family: 'Playfair Display', Georgia, serif; font-size: .95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: hsl(var(--gold)); margin: 0; padding-top: 2px; }
+  .dfm-tl-dot { position: absolute; left: 11px; top: 1px; width: 18px; height: 18px; border-radius: 999px; background: var(--gradient-gold); box-shadow: 0 0 0 5px hsl(var(--sand)), 0 0 14px -2px hsl(36 52% 48% / 0.6); }
+  .dfm-tl-item { margin-bottom: 1rem; }
+  .dfm-tl-check { position: absolute; left: 5px; top: -3px; width: 30px; height: 30px; border-radius: 999px; background: #fff; border: 2px solid hsl(var(--sand-mid)); box-shadow: 0 0 0 5px hsl(var(--sand)); display: flex; align-items: center; justify-content: center; transition: border-color .45s ease, background .45s ease; }
+  .dfm-tl-check svg path { stroke-dasharray: 30; stroke-dashoffset: 30; transition: stroke-dashoffset .5s ease .14s; }
+  .dfm-tl-text { display: block; font-size: .95rem; line-height: 1.5; color: hsl(var(--charcoal-mid)); padding-top: 4px; }
+  @keyframes dfm-check-pop { 0% { transform: scale(1); } 45% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) {
+    .dfm-tl-node { opacity: 1 !important; transform: none !important; transition: none; }
+    .dfm-tl-check { background: var(--gradient-gold) !important; border-color: hsl(var(--gold)) !important; }
+    .dfm-tl-check svg path { stroke: #fff !important; stroke-dashoffset: 0 !important; transition: none; }
+  }
+  /* Instagram fan */
+  .dfm-fan { display: flex; align-items: center; justify-content: center; }
+  .fan-card { position: absolute; left: 50%; top: 50%; width: clamp(166px, 19vw, 230px); aspect-ratio: 4/5; border-radius: 16px; overflow: hidden; background: hsl(var(--sand-mid)); border: 3px solid #fff; box-shadow: 0 22px 55px -18px hsl(210 14% 11% / 0.35); will-change: transform; }
+  .dfm-fan-arrow { width: 2.8rem; height: 2.8rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid hsl(var(--sand-dark) / 0.55); background: hsl(0 0% 100% / 0.75); color: hsl(var(--charcoal)); cursor: pointer; transition: transform .3s ease, border-color .3s ease, color .3s ease; }
+  .dfm-fan-arrow:hover { border-color: hsl(var(--gold)); color: hsl(var(--gold)); transform: translateY(-2px); }
+  .dfm-fan-dots { display: flex; align-items: center; gap: 0.5rem; }
+  .dfm-fan-dot { width: 8px; height: 8px; border-radius: 999px; background: hsl(var(--sand-dark) / 0.5); transition: transform .3s ease, background .3s ease; }
+  .dfm-fan-dot.active { background: hsl(var(--gold)); transform: scale(1.4); }
+  /* How It Works — stacked card deck */
+  .dfm-deck { display: grid; grid-template-areas: "stack"; place-items: center; width: 100%; min-height: 24rem; margin-bottom: 4rem; }
+  .dfm-deck-card { grid-area: stack; width: min(23rem, 86%); min-height: 12.5rem; box-sizing: border-box; border-radius: 1.25rem; padding: 1.75rem 1.9rem; background: hsl(var(--dark-surface)); border: 1px solid hsl(var(--dark-border) / 0.8); box-shadow: 0 26px 64px -26px hsl(210 14% 5% / 0.75); transition: transform .65s cubic-bezier(.16,1,.3,1), filter .6s ease, box-shadow .6s ease, border-color .6s ease; }
+  .dfm-deck-inner { transform: skewY(8deg); }
+  .dfm-deck-1 { transform: skewY(-8deg) translate(-4rem, -2.6rem); z-index: 1; filter: grayscale(1) brightness(0.72); }
+  .dfm-deck-2 { transform: skewY(-8deg) translate(0, 0); z-index: 2; filter: grayscale(1) brightness(0.85); }
+  .dfm-deck-3 { transform: skewY(-8deg) translate(4rem, 2.6rem); z-index: 3; }
+  .dfm-deck-card:hover { filter: none; border-color: hsl(var(--gold) / 0.55); box-shadow: 0 34px 74px -24px hsl(36 52% 48% / 0.4); z-index: 10; }
+  .dfm-deck-1:hover { transform: skewY(-8deg) translate(-4rem, -4.1rem); }
+  .dfm-deck-2:hover { transform: skewY(-8deg) translate(0, -1.5rem); }
+  .dfm-deck-3:hover { transform: skewY(-8deg) translate(4rem, 1.1rem); }
+  @media (max-width: 768px) {
+    .dfm-deck { display: flex; flex-direction: column; gap: 1.25rem; min-height: 0; }
+    .dfm-deck-card { width: 100%; transform: none !important; filter: none !important; box-shadow: 0 18px 44px -22px hsl(210 14% 5% / 0.6); }
+    .dfm-deck-inner { transform: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) { .dfm-deck-card { transition: none; } }
+  /* Como Funciona — glass tilt card */
+  .dfm-glass { position: relative; overflow: hidden; transform-style: preserve-3d; will-change: transform; transition: transform .35s ease; }
+  .dfm-glass::before { content: ''; position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none; transition: opacity .45s ease; background: radial-gradient(circle 340px at var(--mouse-x, 50%) var(--mouse-y, 50%), hsl(36 52% 56% / 0.18), transparent 62%); }
+  .dfm-glass:hover::before { opacity: 1; }
+  .dfm-glass > * { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) { .dfm-glass { transition: none; } .dfm-glass::before { display: none; } }
+  /* Soft glass background for light sections */
+  .dfm-softbg::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(1100px 540px at 50% -14%, hsl(38 40% 62% / 0.045), transparent 64%); }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:hsl(var(--background));">
+
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#15181b"/><path d="M34 70 L34 32 L50 54 L66 32 L66 70" fill="none" stroke="#c8902f" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+
+  <!-- ===================== HEADER ===================== -->
+  <header style="{{ headerStyle }}">
+    <div style="max-width:80rem; margin:0 auto; padding:0 1.25rem;">
+      <nav style="display:flex; align-items:center; justify-content:space-between;">
+        <a href="#" style="display:flex; flex-direction:column;">
+          <span style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:600; color:hsl(var(--dark-text));">Dr. Felipe Mendonça</span>
+          <span style="font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:hsl(var(--gold) / 0.8);">ENDOCRINOLOGIA • MEDICINA PREVENTIVA</span>
+        </a>
+
+        <div style="display:flex; align-items:center; gap:2rem;" class="dfm-nav-desktop">
+          <a href="#abordagem" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Abordagem</a>
+          <a href="#areas" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Especialidades</a>
+          <a href="#sobre" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Sobre</a>
+          <a href="#como-funciona" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Como Funciona</a>
+          <a href="#depoimentos" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Depoimentos</a>
+          <a href="#contato" class="dfm-link-underline" style="font-size:.875rem; font-weight:500; color:hsl(var(--dark-text) / 0.75);">Contato</a>
+        </div>
+
+        <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" class="dfm-nav-cta" style="display:inline-flex; align-items:center; gap:0.625rem; padding:0.75rem 1.5rem; border-radius:0.75rem; font-weight:600; font-size:.875rem; background:var(--gradient-gold); color:#fff; box-shadow:var(--shadow-gold);">
+          <dfm-icon name="calendar" width="16" height="16"></dfm-icon>
+          Agendar Consulta
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== HERO ===================== -->
+    <section class="texture-paper texture-paper-dark" style="position:relative; min-height:100vh; display:flex; align-items:center; padding:7rem 0 4rem; overflow:hidden; background:var(--gradient-hero);">
+      <div class="dfm-spin-slow" style="position:absolute; right:-8rem; top:50%; transform:translateY(-50%); width:900px; height:900px; pointer-events:none; color:hsl(var(--gold)); opacity:0.08;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="165" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="135" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="105" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="75" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="45" stroke="currentColor" stroke-width="0.4"/><g stroke="currentColor" stroke-width="0.35"><line x1="200" y1="5" x2="200" y2="395"/><line x1="200" y1="5" x2="200" y2="395" transform="rotate(30 200 200)"/><line x1="200" y1="5" x2="200" y2="395" transform="rotate(60 200 200)"/><line x1="200" y1="5" x2="200" y2="395" transform="rotate(90 200 200)"/><line x1="200" y1="5" x2="200" y2="395" transform="rotate(120 200 200)"/><line x1="200" y1="5" x2="200" y2="395" transform="rotate(150 200 200)"/></g><g stroke="currentColor" stroke-width="0.35" fill="none"><ellipse cx="200" cy="120" rx="20" ry="80"/><ellipse cx="200" cy="120" rx="20" ry="80" transform="rotate(45 200 200)"/><ellipse cx="200" cy="120" rx="20" ry="80" transform="rotate(90 200 200)"/><ellipse cx="200" cy="120" rx="20" ry="80" transform="rotate(135 200 200)"/></g></svg>
+      </div>
+      <div style="position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse 60% 70% at 80% 50%, hsl(var(--gold) / 0.04) 0%, transparent 70%);"></div>
+
+      <!-- Ethereal Shadows — animated gold mist (adapted, self-contained) -->
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden;" aria-hidden="true">
+        <svg width="0" height="0" style="position:absolute;">
+          <defs>
+            <filter id="dfm-eth-filter">
+              <feTurbulence result="undulation" numOctaves="2" baseFrequency="0.0008 0.003" seed="0" type="turbulence"></feTurbulence>
+              <feColorMatrix in="undulation" type="hueRotate" values="180">
+                <animate attributeName="values" from="0" to="360" dur="24s" repeatCount="indefinite"></animate>
+              </feColorMatrix>
+              <feColorMatrix in="dist" result="circulation" type="matrix" values="4 0 0 0 1  4 0 0 0 1  4 0 0 0 1  1 0 0 0 0"></feColorMatrix>
+              <feDisplacementMap in="SourceGraphic" in2="circulation" scale="58" result="dist"></feDisplacementMap>
+              <feDisplacementMap in="dist" in2="undulation" scale="58" result="output"></feDisplacementMap>
+            </filter>
+          </defs>
+        </svg>
+        <div style="position:absolute; inset:-58px; filter:url(#dfm-eth-filter) blur(5px);">
+          <div style="width:100%; height:100%; background-color:hsl(36 52% 48% / 0.5); mix-blend-mode:screen; -webkit-mask-image:radial-gradient(46% 60% at 64% 40%, #000 0%, transparent 72%), radial-gradient(40% 52% at 34% 66%, #000 0%, transparent 70%); mask-image:radial-gradient(46% 60% at 64% 40%, #000 0%, transparent 72%), radial-gradient(40% 52% at 34% 66%, #000 0%, transparent 70%); -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;"></div>
+        </div>
+      </div>
+
+      <div style="position:absolute; bottom:0; left:0; right:0; height:10rem; z-index:2; pointer-events:none; background:linear-gradient(to bottom, transparent, hsl(var(--dark-bg) / 0.6));"></div>
+
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.25rem; position:relative; z-index:10; width:100%;">
+        <div class="dfm-hero-grid" style="display:grid; gap:3rem; align-items:center;">
+          <div class="dfm-reveal dfm-hero-text" style="order:2;">
+            <div style="display:flex; flex-wrap:wrap; gap:0.625rem; margin-bottom:2rem;">
+              <div style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.375rem 0.875rem; border-radius:999px; font-size:.75rem; font-weight:500; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8); color:hsl(var(--dark-muted));">
+                <dfm-icon name="shield" width="14" height="14" style="color:hsl(var(--gold));"></dfm-icon> CRM-SP 240988
+              </div>
+              <div style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.375rem 0.875rem; border-radius:999px; font-size:.75rem; font-weight:500; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8); color:hsl(var(--dark-muted));">
+                <dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));"></dfm-icon> 5★ Avaliações
+              </div>
+              <div style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.375rem 0.875rem; border-radius:999px; font-size:.75rem; font-weight:500; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8); color:hsl(var(--dark-muted));">
+                <dfm-icon name="globe" width="14" height="14" style="color:hsl(var(--gold));"></dfm-icon> +15 países atendidos
+              </div>
+            </div>
+
+            <h1 style="font-family:'Playfair Display',serif; font-size:clamp(2.35rem,5.2vw,3.6rem); font-weight:500; line-height:1.05; letter-spacing:-0.025em; margin-bottom:1.75rem; color:hsl(var(--dark-text)); text-wrap:balance;">
+              Cuidar da saúde não é sobre viver mais. <span style="background:var(--gradient-gold); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">É sobre viver melhor.</span>
+            </h1>
+
+            <p style="font-size:clamp(1.125rem,1.5vw,1.25rem); font-weight:300; max-width:34rem; margin-bottom:2.25rem; line-height:1.75; letter-spacing:0.002em; color:hsl(var(--dark-muted));">
+              Endocrinologia e Medicina Preventiva com foco em saúde metabólica, longevidade e otimização hormonal como pilares de alta performance, controle de peso e emagrecimento sustentável.
+            </p>
+
+            <div style="display:flex; flex-wrap:wrap; gap:1rem;">
+              <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" class="dfm-btn-gold" style="display:inline-flex; align-items:center; gap:0.625rem; padding:1.05rem 2.1rem; border-radius:0.85rem; font-weight:600; font-size:1rem; letter-spacing:0.01em; background:var(--gradient-gold); color:#fff; box-shadow:var(--shadow-gold);">
+                Agende sua consulta <dfm-icon name="arrow-right" width="20" height="20"></dfm-icon>
+              </a>
+              <a href="#abordagem" class="dfm-btn-ghost" style="display:inline-flex; align-items:center; gap:0.625rem; padding:1.05rem 2.1rem; border-radius:0.85rem; font-weight:600; font-size:1rem; letter-spacing:0.01em; border:1.5px solid hsl(var(--sand-dark) / 0.5); color:hsl(var(--sand));">
+                Conheça a abordagem
+              </a>
+            </div>
+
+            <div style="margin-top:2.5rem; padding-top:2rem; border-top:1px solid hsl(var(--dark-border) / 0.5);">
+              <p style="font-size:1.0625rem; color:hsl(var(--dark-muted));"><span style="font-weight:600; color:hsl(var(--dark-text));">+3.500 pacientes</span> já transformaram sua saúde</p>
+            </div>
+          </div>
+
+          <div class="dfm-reveal dfm-hero-img" style="order:1; position:relative;">
+            <div style="position:relative; aspect-ratio:3/4; max-width:28rem; margin:0 auto;">
+              <div style="position:absolute; top:-1rem; right:-1rem; width:100%; height:100%; border-radius:1.5rem; border:1.5px solid hsl(var(--gold) / 0.25);"></div>
+              <div style="position:absolute; bottom:-1.5rem; left:-1.5rem; width:10rem; height:10rem; border-radius:1.5rem; z-index:-1; background:hsl(var(--gold) / 0.06);"></div>
+              <div style="position:absolute; right:-1rem; top:70%; z-index:10; border-radius:1rem; padding:1rem; box-shadow:var(--shadow-elevated); background:hsl(210 14% 14% / 0.95); border:1px solid hsl(var(--dark-border) / 0.8); backdrop-filter:blur(12px);">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                  <div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);">
+                    <dfm-icon name="shield" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon>
+                  </div>
+                  <div>
+                    <p style="font-weight:600; font-size:.875rem; color:hsl(var(--dark-text));">Endocrinologia</p>
+                    <p style="font-size:.75rem; color:hsl(var(--dark-muted));">CRM-SP 240988</p>
+                  </div>
+                </div>
+              </div>
+              <img src="src/assets/dr-felipe-hero.jpg" alt="Dr. Felipe Mendonça - Médico Endocrinologista" style="position:relative; width:100%; height:100%; object-fit:cover; object-position:top; border-radius:1.5rem; box-shadow:var(--shadow-elevated);">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== MANIFESTO ===================== -->
+    <section class="texture-paper texture-paper-dark" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--dark-bg));">
+      <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:800px; height:800px; pointer-events:none; color:hsl(var(--gold)); opacity:0.07;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="160" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="125" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="90" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="55" stroke="currentColor" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:56rem; margin:0 auto; padding:0 1.5rem; text-align:center; position:relative; z-index:1;">
+        <div style="display:flex; justify-content:center; margin-bottom:2rem;"><div style="width:4rem; height:2px; border-radius:999px; background:var(--gradient-gold);"></div></div>
+        <h2 style="font-family:'Playfair Display',serif; font-size:clamp(2rem,4.4vw,3.4rem); font-weight:500; margin-bottom:2rem; line-height:1.12; letter-spacing:-0.02em; color:hsl(var(--dark-text)); text-wrap:balance;">
+          A sua saúde é uma jornada contínua de <span style="background:var(--gradient-gold); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">escolhas conscientes</span>
+        </h2>
+        <p style="font-size:clamp(1.125rem,1.5vw,1.3rem); font-weight:300; line-height:1.8; max-width:46rem; margin:0 auto; letter-spacing:0.002em; color:hsl(var(--dark-muted));">
+          Meu propósito é guiar você na jornada do autoconhecimento físico, mental e emocional, ajudando a construir uma relação mais equilibrada e consciente com a sua saúde. Quero que você conquiste autonomia para fazer escolhas alinhadas ao seu bem-estar, cultivando um estilo de vida leve, sustentável e transformador.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== APPROACH ===================== -->
+    <section id="abordagem" class="texture-paper texture-paper-light dfm-softbg" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--sand));">
+      <div style="position:absolute; right:-10rem; top:0; bottom:0; width:700px; pointer-events:none; display:flex; align-items:center; opacity:0.07;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="165" stroke="hsl(var(--charcoal))" stroke-width="0.4"/><circle cx="200" cy="200" r="135" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="105" stroke="hsl(var(--charcoal))" stroke-width="0.4"/><circle cx="200" cy="200" r="75" stroke="hsl(var(--charcoal))" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div class="dfm-2col" style="display:grid; gap:3rem; align-items:center;">
+          <div>
+            <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>ABORDAGEM PROATIVA</span>
+            <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.85rem); font-weight:500; margin-bottom:1.5rem; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--charcoal));">Como a medicina preventiva pode transformar sua vida?</h2>
+            <p style="font-size:1.125rem; line-height:1.7; margin-bottom:1.25rem; color:hsl(var(--charcoal-mid));">Saúde exige decisão, não apenas intervenção. Com clareza, direcionamento e responsabilidade compartilhada, o cuidado ganha consistência.</p>
+            <p style="font-size:1.125rem; line-height:1.7; margin-bottom:2rem; color:hsl(var(--charcoal-mid));">Mais do que tratar sintomas, trata-se de compreender quem você deseja se tornar a partir das escolhas assumidas hoje.</p>
+            <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:600; color:hsl(var(--gold));">Agende sua consulta <dfm-icon name="arrow-right" width="16" height="16"></dfm-icon></a>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1.25rem;" class="dfm-feature-grid">
+            <div class="dfm-feat-card" style="border-radius:1.25rem; padding:1.85rem; background:hsl(0 0% 100%); border:1px solid hsl(var(--sand-mid)); box-shadow:var(--shadow-card);"><pixel-canvas data-gap="10" data-speed="36" data-colors="#dcbe7a,#e8d29a,#cda94f" style="position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.45;"></pixel-canvas>
+              <div class="dfm-feat-ic" style="width:3rem; height:3rem; border-radius:0.85rem; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; background:hsl(var(--gold) / 0.1);"><dfm-icon name="brain" width="24" height="24" style="color:hsl(var(--gold));"></dfm-icon></div>
+              <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin-bottom:0.5rem; color:hsl(var(--charcoal));">Análise Profunda</h3>
+              <p style="font-size:.875rem; line-height:1.6; color:hsl(var(--charcoal-mid));">Investigação criteriosa para compreender além do sintoma.</p>
+            </div>
+            <div class="dfm-feat-card" style="border-radius:1.25rem; padding:1.85rem; background:hsl(0 0% 100%); border:1px solid hsl(var(--sand-mid)); box-shadow:var(--shadow-card);"><pixel-canvas data-gap="10" data-speed="36" data-colors="#dcbe7a,#e8d29a,#cda94f" style="position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.45;"></pixel-canvas>
+              <div class="dfm-feat-ic" style="width:3rem; height:3rem; border-radius:0.85rem; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; background:hsl(var(--gold) / 0.1);"><dfm-icon name="dna" width="24" height="24" style="color:hsl(var(--gold));"></dfm-icon></div>
+              <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin-bottom:0.5rem; color:hsl(var(--charcoal));">Conduta Direcionada</h3>
+              <p style="font-size:.875rem; line-height:1.6; color:hsl(var(--charcoal-mid));">Decisões ajustadas ao seu momento, prioridades e objetivos.</p>
+            </div>
+            <div class="dfm-feat-card" style="border-radius:1.25rem; padding:1.85rem; background:hsl(0 0% 100%); border:1px solid hsl(var(--sand-mid)); box-shadow:var(--shadow-card);"><pixel-canvas data-gap="10" data-speed="36" data-colors="#dcbe7a,#e8d29a,#cda94f" style="position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.45;"></pixel-canvas>
+              <div class="dfm-feat-ic" style="width:3rem; height:3rem; border-radius:0.85rem; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; background:hsl(var(--gold) / 0.1);"><dfm-icon name="leaf" width="24" height="24" style="color:hsl(var(--gold));"></dfm-icon></div>
+              <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin-bottom:0.5rem; color:hsl(var(--charcoal));">Visão Sistêmica</h3>
+              <p style="font-size:.875rem; line-height:1.6; color:hsl(var(--charcoal-mid));">Interpretação ampla dos fatores que influenciam sua saúde.</p>
+            </div>
+            <div class="dfm-feat-card" style="border-radius:1.25rem; padding:1.85rem; background:hsl(0 0% 100%); border:1px solid hsl(var(--sand-mid)); box-shadow:var(--shadow-card);"><pixel-canvas data-gap="10" data-speed="36" data-colors="#dcbe7a,#e8d29a,#cda94f" style="position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.45;"></pixel-canvas>
+              <div class="dfm-feat-ic" style="width:3rem; height:3rem; border-radius:0.85rem; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; background:hsl(var(--gold) / 0.1);"><dfm-icon name="microscope" width="24" height="24" style="color:hsl(var(--gold));"></dfm-icon></div>
+              <h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin-bottom:0.5rem; color:hsl(var(--charcoal));">Ação Preventiva</h3>
+              <p style="font-size:.875rem; line-height:1.6; color:hsl(var(--charcoal-mid));">Antecipar desequilíbrios mantém o corpo eficiente, responsivo e sustenta longevidade com qualidade.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== HEALTH PILLARS ===================== -->
+    <section id="pilares" class="texture-paper texture-paper-light dfm-softbg" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--sand));">
+      <div style="position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+        <div style="position:absolute; width:min(840px,132vw); aspect-ratio:1; border-radius:999px; background:radial-gradient(circle, hsl(36 52% 48% / 0.13) 0%, transparent 62%);"></div>
+        <svg class="dfm-ring-a" width="780" height="780" viewBox="0 0 780 780" fill="none" style="position:absolute; max-width:120vw; opacity:0.32;"><circle cx="390" cy="390" r="388" stroke="hsl(36 52% 48% / 0.6)" stroke-width="1" stroke-dasharray="2 13" stroke-linecap="round"></circle></svg>
+        <svg class="dfm-ring-b" width="700" height="700" viewBox="0 0 700 700" fill="none" style="position:absolute; max-width:108vw; opacity:0.2;"><circle cx="350" cy="350" r="348" stroke="hsl(var(--charcoal) / 0.5)" stroke-width="1" stroke-dasharray="1 20"></circle></svg>
+      </div>
+      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0.06;">
+        <svg width="600" height="600" viewBox="0 0 400 400" fill="none"><circle cx="200" cy="200" r="195" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="160" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="125" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="90" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="55" stroke="hsl(var(--charcoal))" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div style="text-align:center; margin-bottom:3.5rem;">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>Visão Integrativa</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.75rem); font-weight:500; margin-bottom:1rem; color:hsl(var(--charcoal));">Pilares da Saúde Autoconsciente</h2>
+          <p style="font-size:1.125rem; max-width:42rem; margin:0 auto; line-height:1.7; color:hsl(var(--charcoal-mid));">Uma visão que integra escolhas e rotina, trazendo lucidez para decisões mais conscientes sobre sua saúde.</p>
+        </div>
+        <div style="display:flex; justify-content:center;">
+          <div class="{{ wheelClass }}" style="position:relative; width:min(620px, 94vw); aspect-ratio:1;">
+            <svg viewBox="0 0 600 600" style="position:absolute; inset:0; width:100%; height:100%; overflow:visible;">
+              <defs><linearGradient id="dfm-seg-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(38 62% 58%)"></stop><stop offset="1" stop-color="hsl(36 52% 42%)"></stop></linearGradient></defs>
+              <sc-for list="{{ wheelSegments }}" as="seg" hint-placeholder-count="12">
+                <path id="{{ seg.id }}" class="dfm-seg" d="{{ seg.d }}" fill="{{ seg.fill }}" data-fill="{{ seg.fill }}" stroke="hsl(36 52% 48% / 0.45)" stroke-width="2"></path>
+              </sc-for>
+              <circle cx="300" cy="300" r="291" fill="none" stroke="hsl(36 52% 48% / 0.55)" stroke-width="2"></circle>
+              <circle cx="300" cy="300" r="129" fill="none" stroke="hsl(36 52% 48% / 0.55)" stroke-width="2"></circle>
+            </svg>
+
+            <div class="dfm-wheel-node" data-idx="0" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:50%; top:14%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="activity" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Equilíbrio hormonal</span></div>
+            <div class="dfm-wheel-node" data-idx="1" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:68%; top:18.82%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="apple" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Nutrição saudável</span></div>
+            <div class="dfm-wheel-node" data-idx="2" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:81.18%; top:32%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="leaf" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Saúde digestiva e intestinal</span></div>
+            <div class="dfm-wheel-node" data-idx="3" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:86%; top:50%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="shield" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Controle do stress oxidativo</span></div>
+            <div class="dfm-wheel-node" data-idx="4" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:81.18%; top:68%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="heart" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Controle da inflamação</span></div>
+            <div class="dfm-wheel-node" data-idx="5" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:68%; top:81.18%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="wind" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Elimine toxinas ambientais</span></div>
+            <div class="dfm-wheel-node" data-idx="6" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:50%; top:86%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="brain" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Saúde mental (stress)</span></div>
+            <div class="dfm-wheel-node" data-idx="7" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:32%; top:81.18%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="zap" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Saúde mitocondrial</span></div>
+            <div class="dfm-wheel-node" data-idx="8" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:18.82%; top:68%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="dumbbell" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Exercício físico</span></div>
+            <div class="dfm-wheel-node" data-idx="9" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:14%; top:50%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="sparkles" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Equilíbrio imunológico</span></div>
+            <div class="dfm-wheel-node" data-idx="10" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:18.82%; top:32%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="sun" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Espiritualidade</span></div>
+            <div class="dfm-wheel-node" data-idx="11" onMouseEnter="{{ onNodeEnter }}" onMouseLeave="{{ onNodeLeave }}" style="position:absolute; left:32%; top:18.82%; transform:translate(-50%,-50%); width:112px; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center;"><div class="dfm-wheel-ic" style="width:2.6rem; height:2.6rem; border-radius:999px; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.18); border:1px solid hsl(var(--gold) / 0.45);"><dfm-icon name="moon" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:11px; line-height:1.2; font-weight:500; color:hsl(var(--dark-text));">Sono de qualidade</span></div>
+
+            <div class="dfm-hub-halo" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:52%; aspect-ratio:1; border-radius:999px; background:radial-gradient(circle, hsl(36 52% 48% / 0.6) 0%, transparent 68%); filter:blur(16px); pointer-events:none;"></div>
+            <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:40%; aspect-ratio:1; border-radius:999px; background:var(--gradient-gold); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; box-shadow:var(--shadow-gold); padding:1rem; box-sizing:border-box;">
+              <div style="position:relative; margin-bottom:0.35rem; line-height:0;">
+                <dfm-icon name="user" width="40" height="40" style="color:hsl(var(--charcoal-deep));"></dfm-icon>
+                <dfm-icon name="heart" width="18" height="18" fill="hsl(var(--charcoal-deep))" style="color:hsl(var(--charcoal-deep)); position:absolute; right:-8px; top:-4px;"></dfm-icon>
+              </div>
+              <span style="font-family:'Playfair Display',serif; font-size:clamp(0.95rem,2.6vw,1.45rem); font-weight:600; color:hsl(var(--charcoal-deep)); line-height:1.1;">Quer ter Saúde?</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:3.5rem;">
+          <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:600; font-size:1.125rem; color:hsl(var(--gold));">Agende sua consulta e construa sua saúde de forma integral <dfm-icon name="arrow-right" width="20" height="20"></dfm-icon></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SPECIALTIES ===================== -->
+    <section id="areas" class="texture-paper texture-paper-dark" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--dark-bg));">
+      <div style="position:absolute; top:0; right:0; width:650px; height:650px; pointer-events:none; transform:translate(25%,-25%); color:hsl(var(--gold)); opacity:0.07;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="165" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="135" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="105" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="75" stroke="currentColor" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div style="margin-bottom:3.5rem;">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold-light));"><span style="width:2rem; height:1px; background:hsl(var(--gold-light));"></span>Áreas de Atuação</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.75rem); font-weight:500; margin-bottom:1.25rem; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--dark-text));">Para quem é a consulta?</h2>
+          <p style="font-size:1.125rem; max-width:42rem; line-height:1.7; color:hsl(var(--dark-muted));">Para pessoas que buscam mais do que tratar sintomas, querem investigar a fundo, prevenir doenças e otimizar a saúde como um todo.</p>
+        </div>
+        <div class="dfm-spec-grid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;">
+          <sc-for list="{{ specialties }}" as="s" hint-placeholder-count="10">
+            <div class="dfm-spec-card" onMouseEnter="{{ onSpecEnter }}" onMouseLeave="{{ onSpecLeave }}" style="height:100%; border-radius:1.25rem; padding:1.6rem; transition:transform .45s cubic-bezier(.16,1,.3,1), background .45s ease, border-color .45s ease, box-shadow .45s ease; cursor:pointer; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8);">
+              <dfm-icon name="{{ s.icon }}" width="24" height="24" class="dfm-spec-icon" style="color:hsl(var(--gold)); margin-bottom:1rem;"></dfm-icon>
+              <h3 class="dfm-spec-title" style="font-family:'Playfair Display',serif; font-size:1rem; font-weight:500; margin-bottom:0.5rem; line-height:1.35; color:hsl(var(--dark-text));">{{ s.title }}</h3>
+              <div class="dfm-spec-desc" style="overflow:hidden; max-height:0; opacity:0; transition:all .5s ease;">
+                <p style="font-size:.75rem; line-height:1.6; margin-top:0.25rem; color:hsl(0 0% 100% / 0.88);">{{ s.description }}</p>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== IMPACT BANNER ===================== -->
+    <section style="position:relative; padding:clamp(96px,12vw,128px) 0; overflow:hidden; background:var(--gradient-gold);">
+      <div style="position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle at 2px 2px, hsl(0 0% 100% / 0.07) 1px, transparent 0); background-size:28px 28px;"></div>
+      <div style="position:absolute; top:0; left:0; width:600px; height:600px; border-radius:999px; filter:blur(64px); pointer-events:none; background:hsl(0 0% 100% / 0.06); transform:translate(-30%,-30%);"></div>
+      <div style="position:absolute; bottom:0; right:0; width:500px; height:500px; border-radius:999px; filter:blur(64px); pointer-events:none; background:hsl(0 0% 0% / 0.1); transform:translate(20%,20%);"></div>
+      <div style="max-width:56rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1; text-align:center;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,4vw,3rem); font-weight:500; margin-bottom:2.5rem; line-height:1.2; color:#fff; text-wrap:balance;">Quando você cuida de si, tudo ao seu redor se alinha e prospera.</h2>
+        <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; justify-content:center; gap:0.75rem; padding:1.25rem 2.5rem; border-radius:1rem; font-weight:600; font-size:1rem; background:hsl(var(--dark-bg)); color:hsl(var(--dark-text)); box-shadow:var(--shadow-elevated);">Dar o primeiro passo <dfm-icon name="arrow-right" width="20" height="20"></dfm-icon></a>
+      </div>
+    </section>
+
+    <!-- ===================== ABOUT ===================== -->
+    <section id="sobre" class="texture-paper texture-paper-light dfm-softbg" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--sand));">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:700px; pointer-events:none; transform:translateX(-50%); display:flex; align-items:center; opacity:0.07;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="165" stroke="hsl(var(--charcoal))" stroke-width="0.4"/><circle cx="200" cy="200" r="135" stroke="hsl(var(--charcoal))" stroke-width="0.5"/><circle cx="200" cy="200" r="105" stroke="hsl(var(--charcoal))" stroke-width="0.4"/><circle cx="200" cy="200" r="75" stroke="hsl(var(--charcoal))" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div class="dfm-2col" style="display:grid; gap:3rem; align-items:center;">
+          <div style="position:relative;">
+            <div style="position:relative; aspect-ratio:4/5; max-width:28rem; margin:0 auto;">
+              <div style="position:absolute; bottom:-1.25rem; right:-1.25rem; width:100%; height:100%; border-radius:1.5rem; border:1.5px solid hsl(var(--gold) / 0.25);"></div>
+              <div style="position:absolute; top:-1.25rem; left:-1.25rem; width:7rem; height:7rem; border-radius:1.5rem; z-index:-1; background:hsl(var(--gold) / 0.08);"></div>
+              <div style="position:absolute; left:0; bottom:8%; z-index:10; border-radius:1rem; padding:1rem; background:hsl(var(--charcoal)); box-shadow:var(--shadow-elevated);">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                  <div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);"><dfm-icon name="graduation-cap" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div>
+                  <div>
+                    <p style="font-weight:600; color:hsl(var(--dark-text));">CRM-SP 240988</p>
+                    <p style="font-size:.75rem; color:hsl(var(--dark-muted));">Registro ativo</p>
+                  </div>
+                </div>
+              </div>
+              <img src="src/assets/dr-felipe-about.jpg" alt="Dr. Felipe Mendonça" style="position:relative; width:100%; height:100%; object-fit:cover; object-position:top; border-radius:1.5rem; box-shadow:var(--shadow-elevated);">
+            </div>
+          </div>
+          <div>
+            <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>Sobre</span>
+            <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.75rem); font-weight:500; margin-bottom:1.5rem; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--charcoal));">Dr. Felipe Mendonça</h2>
+            <p style="font-size:1.125rem; font-weight:300; line-height:1.8; margin-bottom:1.25rem; color:hsl(var(--charcoal-mid));">Minha trajetória na Medicina começou com a convicção de que cuidar da saúde exige mais do que tratar diagnósticos isolados. Após uma formação inicial em Odontologia, aprofundei meu caminho com a certeza de que cada paciente precisa ser compreendido em sua singularidade biológica e no contexto da própria vida.</p>
+            <p style="font-size:1.125rem; font-weight:300; line-height:1.8; margin-bottom:2rem; color:hsl(var(--charcoal-mid));">Minha prática é preventiva e proativa, baseada em raciocínio clínico estruturado e decisões bem direcionadas. Mais do que aliviar sintomas, busco identificar causas, definir prioridades e conduzir estratégias que tragam consistência e resultado ao longo do tempo. Cada consulta é um espaço de análise, clareza e construção de responsabilidade sobre a própria saúde.</p>
+                      </div>
+        </div>
+        <div class="dfm-tl" style="max-width:780px; margin:0 auto; padding-top:clamp(3rem,6vw,5rem);">
+          <div class="dfm-tl-progress"><div id="dfm-tl-bar" class="dfm-tl-bar"></div></div>
+          <div style="text-align:center; margin:1.6rem 0 2.75rem;">
+            <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>Trajetória</span>
+            <h3 style="font-family:'Playfair Display',serif; font-size:clamp(1.6rem,3vw,2.1rem); font-weight:500; letter-spacing:-0.015em; color:hsl(var(--charcoal)); margin:0;">Formação e Especializações</h3>
+          </div>
+          <div id="dfm-tl-body" style="position:relative;">
+            <div class="dfm-tl-rail"><div id="dfm-tl-fill" class="dfm-tl-railfill"></div></div>
+            <sc-for list="{{ qualifications }}" as="g" hint-placeholder-count="3">
+              <div class="dfm-tl-node dfm-tl-head">
+                <span class="dfm-tl-dot"></span>
+                <h4 class="dfm-tl-phase-title">{{ g.group }}</h4>
+              </div>
+              <sc-for list="{{ g.items }}" as="item" hint-placeholder-count="3">
+                <div class="dfm-tl-node dfm-tl-item">
+                  <span class="dfm-tl-check"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="hsl(36 52% 48%)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+                  <span class="dfm-tl-text">{{ item }}</span>
+                </div>
+              </sc-for>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================== INSTAGRAM ===================== -->
+    <section id="instagram" class="texture-paper texture-paper-light dfm-softbg" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,140px) 0; background:hsl(var(--sand));">
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div style="text-align:center; margin-bottom:clamp(1.5rem,4vw,2.5rem);">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>Instagram</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.85rem); font-weight:500; line-height:1.14; letter-spacing:-0.018em; margin-bottom:1rem; color:hsl(var(--charcoal));">Acompanhe o dia a dia</h2>
+          <p style="font-size:1.125rem; font-weight:300; max-width:40rem; margin:0 auto; line-height:1.7; color:hsl(var(--charcoal-mid));">Conteúdo sobre saúde metabólica, longevidade e equilíbrio hormonal — direto do consultório.</p>
+        </div>
+        <div id="dfm-fan" class="dfm-fan" style="position:relative; width:100%; height:clamp(360px,50vw,560px);">
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DTd5ltIketa/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/1.png" alt="Publicação 1 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DZqP8cjEfck/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/2.png" alt="Publicação 2 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DYf3PPjkeyS/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/3.png" alt="Publicação 3 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DZh8cvFxlcQ/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/4.png" alt="Publicação 4 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/CyREsnCt6oq/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/5.png" alt="Publicação 5 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DZvnv2OEVXJ/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/6.png" alt="Publicação 6 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DYnjzBRkQZe/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/7.png" alt="Publicação 7 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DYZ34AZEVcM/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/8.png" alt="Publicação 8 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+          <a class="fan-card" href="https://www.instagram.com/dr_felipemendonca/p/DX4IwTUEYUH/" target="_blank" rel="noopener noreferrer" style="position:absolute; left:50%; top:50%;"><img src="instagram/9.png" alt="Publicação 9 — Instagram do Dr. Felipe Mendonça" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;"></a>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:1.25rem; margin-top:1.25rem;">
+          <button id="dfm-fan-prev" class="dfm-fan-arrow" aria-label="Anterior"><dfm-icon name="chevron-left" width="20" height="20"></dfm-icon></button>
+          <div id="dfm-fan-dots" class="dfm-fan-dots"><span class="dfm-fan-dot" data-i="0"></span><span class="dfm-fan-dot" data-i="1"></span><span class="dfm-fan-dot" data-i="2"></span><span class="dfm-fan-dot" data-i="3"></span><span class="dfm-fan-dot" data-i="4"></span><span class="dfm-fan-dot" data-i="5"></span><span class="dfm-fan-dot" data-i="6"></span><span class="dfm-fan-dot" data-i="7"></span><span class="dfm-fan-dot" data-i="8"></span></div>
+          <button id="dfm-fan-next" class="dfm-fan-arrow" aria-label="Próximo"><dfm-icon name="chevron-right" width="20" height="20"></dfm-icon></button>
+        </div>
+        <div style="text-align:center; margin-top:2.25rem;">
+          <a href="https://instagram.com/dr_felipemendonca" target="_blank" rel="noopener noreferrer" class="dfm-btn-gold" style="display:inline-flex; align-items:center; gap:0.6rem; padding:1.05rem 2.2rem; border-radius:0.85rem; font-weight:600; font-size:1rem; letter-spacing:0.04em; background:var(--gradient-gold); color:#fff; box-shadow:var(--shadow-gold);"><dfm-icon name="instagram" width="20" height="20"></dfm-icon> SEGUIR INSTAGRAM</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== HOW IT WORKS ===================== -->
+    <section id="como-funciona" class="texture-paper texture-paper-dark" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--dark-bg));">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:600px; pointer-events:none; transform:translateX(-50%); display:flex; align-items:center; color:hsl(var(--gold)); opacity:0.06;">
+        <svg viewBox="0 0 400 400" fill="none" style="width:100%;height:100%;"><circle cx="200" cy="200" r="195" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="165" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="135" stroke="currentColor" stroke-width="0.5"/><circle cx="200" cy="200" r="105" stroke="currentColor" stroke-width="0.4"/><circle cx="200" cy="200" r="75" stroke="currentColor" stroke-width="0.5"/></svg>
+      </div>
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1;">
+        <div style="text-align:center; margin-bottom:3.5rem;">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold-light));"><span style="width:2rem; height:1px; background:hsl(var(--gold-light));"></span>Como Funciona</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.75rem); font-weight:500; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--dark-text));">Sua jornada para uma saúde melhor</h2>
+        </div>
+        <div class="dfm-deck">
+          <div class="dfm-deck-card dfm-deck-1"><div class="dfm-deck-inner"><div style="display:inline-flex; align-items:center; justify-content:center; width:3.5rem; height:3.5rem; border-radius:1rem; margin-bottom:1.1rem; background:hsl(var(--gold) / 0.14); border:1px solid hsl(var(--gold) / 0.3);"><span style="font-size:1.4rem; font-family:'Playfair Display',serif; font-weight:600; color:hsl(var(--gold));">01</span></div><h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin:0 0 0.6rem; color:hsl(var(--dark-text));">Escuta e Compreensão</h3><p style="font-size:.9375rem; line-height:1.6; margin:0; color:hsl(var(--dark-muted));">Consulta de aproximadamente 1h30 dedicada a entender sua história, seus sintomas, seus padrões e o que realmente precisa ser priorizado.</p></div></div>
+          <div class="dfm-deck-card dfm-deck-2"><div class="dfm-deck-inner"><div style="display:inline-flex; align-items:center; justify-content:center; width:3.5rem; height:3.5rem; border-radius:1rem; margin-bottom:1.1rem; background:hsl(var(--gold) / 0.14); border:1px solid hsl(var(--gold) / 0.3);"><span style="font-size:1.4rem; font-family:'Playfair Display',serif; font-weight:600; color:hsl(var(--gold));">02</span></div><h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin:0 0 0.6rem; color:hsl(var(--dark-text));">Clareza e Direção</h3><p style="font-size:.9375rem; line-height:1.6; margin:0; color:hsl(var(--dark-muted));">Organização das informações, definição de prioridades e orientação objetiva sobre os próximos passos.</p></div></div>
+          <div class="dfm-deck-card dfm-deck-3"><div class="dfm-deck-inner"><div style="display:inline-flex; align-items:center; justify-content:center; width:3.5rem; height:3.5rem; border-radius:1rem; margin-bottom:1.1rem; background:hsl(var(--gold) / 0.14); border:1px solid hsl(var(--gold) / 0.3);"><span style="font-size:1.4rem; font-family:'Playfair Display',serif; font-weight:600; color:hsl(var(--gold));">03</span></div><h3 style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:500; margin:0 0 0.6rem; color:hsl(var(--dark-text));">Evolução e Ajustes</h3><p style="font-size:.9375rem; line-height:1.6; margin:0; color:hsl(var(--dark-muted));">Retorno em média após 60 dias para analisar resultados, corrigir rotas e fortalecer decisões sustentáveis.</p></div></div>
+        </div>
+        <div class="dfm-glass" style="border-radius:1.5rem; padding:clamp(1.5rem,4vw,3rem); background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8);">
+          <div class="dfm-info-grid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:2rem; margin-bottom:2.5rem;">
+            <div style="display:flex; align-items:flex-start; gap:1rem;"><div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);"><dfm-icon name="map-pin" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><div><h4 style="font-weight:600; margin-bottom:0.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Presencial</h4><p style="font-size:.875rem; color:hsl(var(--dark-muted));">Rua Sinfrônio Costa, 935 – Clínica Harmony, Registro/SP</p></div></div>
+            <div style="display:flex; align-items:flex-start; gap:1rem;"><div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);"><dfm-icon name="video" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><div><h4 style="font-weight:600; margin-bottom:0.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Online</h4><p style="font-size:.875rem; color:hsl(var(--dark-muted));">Atendimento no Brasil e no exterior (+15 países)</p></div></div>
+            <div style="display:flex; align-items:flex-start; gap:1rem;"><div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);"><dfm-icon name="scan" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><div><h4 style="font-weight:600; margin-bottom:0.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Bioimpedância InBody</h4><p style="font-size:.875rem; color:hsl(var(--dark-muted));">Para pacientes presenciais</p></div></div>
+            <div style="display:flex; align-items:flex-start; gap:1rem;"><div style="width:3rem; height:3rem; border-radius:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--gold) / 0.15); border:1px solid hsl(var(--gold) / 0.2);"><dfm-icon name="clock" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><div><h4 style="font-weight:600; margin-bottom:0.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Duração</h4><p style="font-size:.875rem; color:hsl(var(--dark-muted));">Em média 1h30 de consulta</p></div></div>
+          </div>
+          <div style="text-align:center; padding-top:2rem; border-top:1px solid hsl(var(--dark-border));">
+            <div style="display:flex; align-items:flex-start; justify-content:center; gap:0.5rem; margin-bottom:1.5rem; color:hsl(var(--dark-muted));"><dfm-icon name="check-circle-2" width="20" height="20" style="color:hsl(var(--gold)); flex-shrink:0; margin-top:0.125rem;"></dfm-icon><p style="font-size:.9375rem;"><span style="font-weight:600; color:hsl(var(--dark-text));">Importante:</span> Atendimento exclusivamente particular, sem vínculo com convênios.</p></div>
+            <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.625rem; padding:1rem 2.5rem; border-radius:0.75rem; font-weight:600; font-size:1rem; background:var(--gradient-gold); color:#fff; box-shadow:var(--shadow-gold);"><dfm-icon name="message-circle" width="20" height="20"></dfm-icon> Agendar agora <dfm-icon name="arrow-right" width="20" height="20"></dfm-icon></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TESTIMONIALS ===================== -->
+    <sc-if value="{{ showTestimonials }}" hint-placeholder-val="{{ true }}">
+    <section id="depoimentos" class="texture-paper texture-paper-light dfm-softbg" style="position:relative; overflow:hidden; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--sand));">
+      <div style="max-width:80rem; margin:0 auto; padding:0 1.5rem;">
+        <div style="text-align:center; margin-bottom:3.5rem;">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold));"><span style="width:2rem; height:1px; background:hsl(var(--gold));"></span>Depoimentos</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.75rem); font-weight:500; margin-bottom:1.5rem; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--charcoal));">O que dizem os pacientes</h2>
+          <p style="font-size:1.125rem; max-width:42rem; margin:0 auto; color:hsl(var(--charcoal-mid));">Histórias reais de pessoas que transformaram sua saúde com a medicina pró-ativa.</p>
+        </div>
+        <div class="dfm-stack-wrap">
+          <sc-for list="{{ stackCards }}" as="card" hint-placeholder-count="3">
+            <div class="{{ card.cls }}" data-front="{{ card.isFront }}" onPointerDown="{{ onCardDown }}" onPointerMove="{{ onCardMove }}" onPointerUp="{{ onCardUp }}">
+              <div style="width:5rem;height:5rem;border-radius:999px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:hsl(var(--gold) / 0.14);border:1px solid hsl(var(--gold) / 0.4);"><span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:600;color:hsl(var(--gold));">{{ card.t.initial }}</span></div>
+              <p style="font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;line-height:1.55;color:hsl(var(--charcoal-mid));margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;">"{{ card.t.text }}"</p>
+              <div style="display:flex;gap:0.2rem;"><dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="14" height="14" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-weight:600;color:hsl(var(--charcoal));">{{ card.t.name }}</span><span style="font-size:.72rem;color:hsl(var(--charcoal-mid));">{{ card.t.meta }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="text-align:center; margin-top:1.75rem; display:flex; align-items:center; justify-content:center; gap:1rem; flex-wrap:wrap;">
+          <span style="font-size:.8rem; color:hsl(var(--charcoal-mid));">Arraste para o próximo · toque no card para ler o depoimento completo</span>
+          <button onClick="{{ shuffleNext }}" aria-label="Próximo depoimento" style="display:inline-flex; align-items:center; justify-content:center; width:2.6rem; height:2.6rem; border-radius:999px; border:1px solid hsl(var(--gold) / 0.4); background:hsl(var(--gold) / 0.1); color:hsl(var(--gold)); cursor:pointer;"><dfm-icon name="arrow-right" width="18" height="18"></dfm-icon></button>
+        </div>
+        <sc-if value="{{ reviewOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeReview }}" style="position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:1.5rem; background:hsl(210 14% 6% / 0.62); backdrop-filter:blur(4px);">
+            <div onClick="{{ stopEvt }}" style="position:relative; max-width:34rem; width:100%; max-height:82vh; overflow-y:auto; background:#fff; border:1px solid hsl(var(--sand-mid)); border-radius:1.5rem; padding:2.5rem 2.25rem 2.25rem; box-shadow:var(--shadow-elevated);">
+              <button onClick="{{ closeReview }}" aria-label="Fechar" style="position:absolute; top:1rem; right:1rem; width:2.25rem; height:2.25rem; border-radius:999px; border:1px solid hsl(var(--sand-mid)); background:hsl(var(--sand)); color:hsl(var(--charcoal)); cursor:pointer; display:flex; align-items:center; justify-content:center;"><dfm-icon name="x" width="18" height="18"></dfm-icon></button>
+              <div style="display:flex; align-items:center; gap:0.85rem; margin-bottom:1.1rem;">
+                <div style="width:3.25rem;height:3.25rem;border-radius:999px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:hsl(var(--gold) / 0.14);border:1px solid hsl(var(--gold) / 0.4);"><span style="font-family:'Playfair Display',serif;font-weight:600;color:hsl(var(--gold));">{{ review.initial }}</span></div>
+                <div style="display:flex; flex-direction:column;"><span style="font-weight:600; color:hsl(var(--charcoal));">{{ review.name }}</span><span style="font-size:.74rem; color:hsl(var(--charcoal-mid));">{{ review.meta }}</span></div>
+              </div>
+              <div style="display:flex; gap:0.2rem; margin-bottom:1rem;"><dfm-icon name="star" width="15" height="15" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="15" height="15" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="15" height="15" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="15" height="15" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon><dfm-icon name="star" width="15" height="15" style="color:hsl(var(--gold));fill:hsl(var(--gold));"></dfm-icon></div>
+              <p style="font-family:'Playfair Display',serif; font-style:italic; font-size:1.05rem; line-height:1.7; color:hsl(var(--charcoal-mid)); margin:0;">"{{ review.text }}"</p>
+            </div>
+          </div>
+        </sc-if>
+        <div style="text-align:center; margin-top:3rem;">
+          <a href="https://www.google.com/search?q=Dr.+Felipe+Mendon%C3%A7a+Registro#lrd=0x94c53350a0f969e3:0x17b3aeb60450b957,1,,,," target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:600; color:hsl(var(--gold));">Ver todos os comentários no Google <span>→</span></a>
+        </div>
+      </div>
+    </section>
+    </sc-if>
+
+    <!-- ===================== FAQ ===================== -->
+    <section id="faq" class="texture-paper texture-paper-dark" style="position:relative; padding:clamp(80px,10vw,144px) 0; background:hsl(var(--dark-bg));">
+      <div style="max-width:56rem; margin:0 auto; padding:0 1.5rem;">
+        <div style="text-align:center; margin-bottom:3rem;">
+          <span style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:1.25rem; color:hsl(var(--gold-light));"><span style="width:2rem; height:1px; background:hsl(var(--gold-light));"></span>Dúvidas Frequentes</span>
+          <h2 style="font-family:'Playfair Display',serif; font-size:clamp(1.875rem,3.5vw,2.25rem); font-weight:500; line-height:1.14; letter-spacing:-0.018em; color:hsl(var(--dark-text));">Perguntas e Respostas</h2>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="10">
+            <details class="dfm-faq-item" style="border-radius:0.9rem; padding:0 1.5rem; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.8);">
+              <summary style="display:flex; align-items:center; justify-content:space-between; gap:1rem; font-weight:500; padding:1.25rem 0; color:hsl(var(--dark-text));">
+                {{ f.question }}
+                <dfm-icon name="chevron-down" width="18" height="18" class="dfm-faq-chevron" style="flex-shrink:0; transition:transform .3s ease; color:hsl(var(--dark-muted));"></dfm-icon>
+              </summary>
+              <p style="padding-bottom:1.25rem; line-height:1.7; color:hsl(var(--dark-muted));">{{ f.answer }}</p>
+            </details>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer id="contato" class="texture-paper texture-paper-dark" style="background:hsl(var(--charcoal-deep));">
+    <div style="width:100%; border-bottom:1px solid hsl(var(--dark-border) / 0.5);">
+      <div style="max-width:80rem; margin:0 auto; padding:3rem 1.5rem;">
+        <div class="dfm-2col" style="display:grid; gap:2.5rem; align-items:center;">
+          <div style="position:relative; border-radius:1.25rem; overflow:hidden; box-shadow:var(--shadow-elevated); border:1px solid hsl(var(--gold) / 0.2); height:320px;">
+            <div id="dfm-map" style="width:100%; height:100%;"></div>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;"><div style="width:2.5rem; height:2.5rem; border-radius:0.75rem; display:flex; align-items:center; justify-content:center; background:hsl(var(--gold) / 0.15);"><dfm-icon name="map-pin" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon></div><span style="font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.18em; color:hsl(var(--gold));">Localização</span></div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:500; margin-bottom:0.5rem; color:hsl(var(--dark-text));">Clínica Harmony</h3>
+            <p style="font-size:1.125rem; margin-bottom:0.25rem; color:hsl(var(--dark-muted));">Rua Sinfrônio Costa, 935, Centro</p>
+            <p style="font-size:1rem; margin-bottom:0.25rem; color:hsl(var(--dark-muted));">Registro/SP – CEP 11900-000</p>
+            <p style="font-size:.875rem; margin-bottom:1.5rem; color:hsl(var(--dark-muted) / 0.7);">Atendimento presencial e telemedicina para todo o Brasil</p>
+            <a href="https://maps.google.com/?q=Rua+Sinfrônio+Costa,+935,+Centro,+Registro,+SP,+11900-000" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.5rem; font-size:.875rem; font-weight:600; color:hsl(var(--gold));">Ver no Google Maps <dfm-icon name="external-link" width="16" height="16"></dfm-icon></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:80rem; margin:0 auto; padding:4rem 1.5rem;">
+      <div class="dfm-footer-grid" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:3rem;">
+        <div>
+          <h3 style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:600; margin-bottom:0.5rem; color:hsl(var(--dark-text));">Dr. Felipe Mendonça</h3>
+          <p style="font-size:.875rem; margin-bottom:1.25rem; letter-spacing:0.16em; color:hsl(var(--gold) / 0.7);">ENDOCRINOLOGIA • MEDICINA PREVENTIVA</p>
+          <p style="max-width:28rem; line-height:1.7; color:hsl(var(--dark-muted));">Cuidando da sua saúde de forma integral, com ciência, humanização e foco na sua qualidade de vida.</p>
+          <div style="margin-top:1.5rem;"><a href="https://instagram.com/dr_felipemendonca" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:0.75rem; padding:0.625rem 1.25rem; border-radius:0.75rem; background:hsl(var(--dark-surface)); border:1px solid hsl(var(--dark-border) / 0.6); color:hsl(var(--dark-text));"><dfm-icon name="instagram" width="20" height="20" style="color:hsl(var(--gold));"></dfm-icon><span style="font-size:.875rem; font-weight:500;">@dr_felipemendonca</span></a></div>
+        </div>
+        <div>
+          <h4 style="font-weight:600; font-size:1rem; margin-bottom:1.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Contato</h4>
+          <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:1rem;">
+            <li style="display:flex; align-items:flex-start; gap:0.75rem; font-size:.875rem; color:hsl(var(--dark-muted));"><div style="width:2rem; height:2rem; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--dark-surface));"><dfm-icon name="map-pin" width="16" height="16" style="color:hsl(var(--gold));"></dfm-icon></div><div><p style="font-weight:500; color:hsl(var(--dark-text));">Clínica Harmony</p><p>Rua Sinfrônio Costa, 935, Centro</p><p>Registro/SP – 11900-000</p></div></li>
+            <li><a href="tel:+5513998010394" style="display:flex; align-items:center; gap:0.75rem; font-size:.875rem; color:hsl(var(--dark-muted));"><div style="width:2rem; height:2rem; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--dark-surface));"><dfm-icon name="phone" width="16" height="16" style="color:hsl(var(--gold));"></dfm-icon></div><span>(13) 99801-0394</span></a></li>
+            <li><a href="{{ emailHref }}" style="display:flex; align-items:center; gap:0.75rem; font-size:.875rem; color:hsl(var(--dark-muted));"><div style="width:2rem; height:2rem; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:hsl(var(--dark-surface));"><dfm-icon name="mail" width="16" height="16" style="color:hsl(var(--gold));"></dfm-icon></div><span>{{ email }}</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-weight:600; font-size:1rem; margin-bottom:1.25rem; color:hsl(var(--dark-text)); font-family:'Inter',sans-serif;">Links</h4>
+          <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.75rem;">
+            <li><a href="#sobre" class="dfm-foot-link" style="font-size:.875rem; color:hsl(var(--dark-muted));">Sobre</a></li>
+            <li><a href="#areas" class="dfm-foot-link" style="font-size:.875rem; color:hsl(var(--dark-muted));">Especialidades</a></li>
+            <li><a href="#como-funciona" class="dfm-foot-link" style="font-size:.875rem; color:hsl(var(--dark-muted));">Como Funciona</a></li>
+            <li><a href="#faq" class="dfm-foot-link" style="font-size:.875rem; color:hsl(var(--dark-muted));">Perguntas Frequentes</a></li>
+            <li><a href="#" class="dfm-foot-link" style="font-size:.875rem; color:hsl(var(--dark-muted));">Política de Privacidade</a></li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:3.5rem; padding-top:2rem; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1rem; border-top:1px solid hsl(var(--dark-border) / 0.5);">
+        <p style="font-size:.875rem; color:hsl(var(--dark-muted) / 0.6);">© 2025 Dr. Felipe Mendonça. Todos os direitos reservados.</p>
+        <p style="display:flex; align-items:center; gap:0.375rem; font-size:.875rem; color:hsl(var(--dark-muted) / 0.6);">Feito com <dfm-icon name="heart" width="14" height="14" style="color:hsl(var(--gold)); fill:hsl(var(--gold));"></dfm-icon> para você</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================== WHATSAPP FLOATING ===================== -->
+  <sc-if value="{{ showFloatingWhatsapp }}" hint-placeholder-val="{{ true }}">
+    <a href="https://wa.me/5513998010394" target="_blank" rel="noopener noreferrer" aria-label="Contato via WhatsApp" style="position:fixed; bottom:1.5rem; right:1.5rem; z-index:60; width:4rem; height:4rem; border-radius:999px; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-elevated);">
+      <dfm-icon name="message-circle" width="28" height="28"></dfm-icon>
+      <span style="position:absolute; inset:0; border-radius:999px; background:#25D366; opacity:0.25; animation:dfm-ping 1.5s cubic-bezier(0,0,0.2,1) infinite; z-index:-1;"></span>
+    </a>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;showTestimonials&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showFloatingWhatsapp&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { scrolled: false, wheelIn: false, order: [0, 1, 2, 3, 4], openReview: null };
+  _drag = null;
+  handleShuffle = () => { this.setState((s) => ({ order: [...s.order.slice(1), s.order[0]] })); };
+  onCardDown = (e) => {
+    if (e.currentTarget.dataset.front !== 'true') return;
+    this._drag = { x: e.clientX, el: e.currentTarget };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    e.currentTarget.style.transition = 'none';
+  };
+  onCardMove = (e) => {
+    if (!this._drag || this._drag.el !== e.currentTarget) return;
+    const dx = e.clientX - this._drag.x;
+    e.currentTarget.style.transform = 'rotate(' + (-5 + dx * 0.03) + 'deg) translateX(' + dx + 'px)';
+  };
+  onCardUp = (e) => {
+    if (!this._drag || this._drag.el !== e.currentTarget) return;
+    const dx = e.clientX - this._drag.x;
+    this._drag = null;
+    e.currentTarget.style.transition = '';
+    if (dx < -100) { this.handleShuffle(); }
+    else if (Math.abs(dx) < 8) { this.setState((s) => ({ openReview: s.order[0] })); }
+    e.currentTarget.style.transform = '';
+  };
+  closeReview = () => { this.setState({ openReview: null }); };
+  stopEvt = (e) => { e.stopPropagation(); };
+
+  componentDidMount() {
+    this._onScroll = () => {
+      const s = window.scrollY > 50;
+      if (s !== this.state.scrolled) this.setState({ scrolled: s });
+      this._updateTimeline();
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+
+    // Reveal the wheel with a one-time entrance animation when it scrolls into view
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) { this.setState({ wheelIn: true }); this._io.unobserve(en.target); }
+      });
+    }, { threshold: 0.2 });
+    const obs = () => {
+      const el = document.querySelector('.dfm-wheel');
+      if (!el) { this._obsT = setTimeout(obs, 150); return; }
+      this._io.observe(el);
+    };
+    obs();
+    this._initMap();
+
+    // Timeline: scroll-triggered reveal + animated checks (inline styles so React re-renders don't reset them)
+    this._tlIo = new IntersectionObserver((entries) => {
+      let i = 0;
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        const el = en.target;
+        const d = i * 0.09;
+        el.style.transitionDelay = d + 's';
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+        const chk = el.querySelector('.dfm-tl-check');
+        if (chk) {
+          chk.style.borderColor = 'hsl(var(--gold))';
+          chk.style.background = 'var(--gradient-gold)';
+          chk.style.boxShadow = '0 0 0 5px hsl(var(--sand)), 0 4px 14px -3px hsl(36 52% 48% / 0.55)';
+          chk.style.animation = 'dfm-check-pop .55s cubic-bezier(.16,1,.3,1) ' + (d + 0.08) + 's';
+          const path = chk.querySelector('path');
+          if (path) { path.style.stroke = '#fff'; path.style.strokeDashoffset = '0'; }
+        }
+        i += 1;
+        this._tlIo.unobserve(el);
+      });
+    }, { threshold: 0.18 });
+    const obsTl = () => {
+      const nodes = document.querySelectorAll('.dfm-tl-node');
+      if (!nodes.length) { this._tlT = setTimeout(obsTl, 160); return; }
+      nodes.forEach((n) => this._tlIo.observe(n));
+      this._updateTimeline();
+    };
+    obsTl();
+    this._initFan();
+    this._initGlass();
+  }
+
+  _initGlass() {
+    if (this._glassInit) return;
+    const cards = document.querySelectorAll('.dfm-glass');
+    if (!cards.length) { this._glassT = setTimeout(() => this._initGlass(), 160); return; }
+    this._glassInit = true;
+    cards.forEach((card) => {
+      card.addEventListener('mousemove', (e) => {
+        const r = card.getBoundingClientRect();
+        const x = e.clientX - r.left, y = e.clientY - r.top;
+        const rx = ((y - r.height / 2) / (r.height / 2)) * -4.5;
+        const ry = ((x - r.width / 2) / (r.width / 2)) * 4.5;
+        card.style.transform = 'perspective(1100px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
+        card.style.setProperty('--mouse-x', x + 'px');
+        card.style.setProperty('--mouse-y', y + 'px');
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1100px) rotateX(0deg) rotateY(0deg)';
+      });
+    });
+  }
+
+  _updateTimeline() {
+    const body = document.getElementById('dfm-tl-body');
+    if (!body) return;
+    const fill = document.getElementById('dfm-tl-fill');
+    const bar = document.getElementById('dfm-tl-bar');
+    const r = body.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    let p = (vh * 0.72 - r.top) / (r.height || 1);
+    p = Math.max(0, Math.min(1, p));
+    const pct = (p * 100).toFixed(2) + '%';
+    if (fill) fill.style.height = pct;
+    if (bar) bar.style.width = pct;
+  }
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this._onScroll);
+    if (this._io) this._io.disconnect();
+    if (this._obsT) clearTimeout(this._obsT);
+    if (this._mapT) clearTimeout(this._mapT);
+    if (this._map) { try { this._map.remove(); } catch (e) {} this._map = null; }
+    if (this._tlIo) this._tlIo.disconnect();
+    if (this._tlT) clearTimeout(this._tlT);
+    if (this._fanT) clearTimeout(this._fanT);
+    if (this._glassT) clearTimeout(this._glassT);
+  }
+
+  _initFan() {
+    if (this._fanInit) return;
+    const wrap = document.getElementById('dfm-fan');
+    if (!wrap || !window.gsap) { this._fanT = setTimeout(() => this._initFan(), 180); return; }
+    const gsap = window.gsap;
+    const cards = Array.from(wrap.querySelectorAll('.fan-card'));
+    if (!cards.length) { this._fanT = setTimeout(() => this._initFan(), 180); return; }
+    this._fanInit = true;
+    const MAX = 7, HALF = 3, total = cards.length, needs = total > MAX;
+    const FAN = [
+      { rot: -21, scale: 0.7756, x: -30, y: 7.3, z: 1 },
+      { rot: -14, scale: 0.8498, x: -22, y: 4.0, z: 2 },
+      { rot: -7, scale: 0.9346, x: -11, y: 1.3, z: 3 },
+      { rot: 0, scale: 1.0, x: 0, y: 0.0, z: 10 },
+      { rot: 7, scale: 0.9346, x: 11, y: 1.3, z: 3 },
+      { rot: 14, scale: 0.8498, x: 22, y: 4.0, z: 2 },
+      { rot: 21, scale: 0.7756, x: 30, y: 7.3, z: 1 },
+    ];
+    const mult = () => { const w = window.innerWidth; return w < 480 ? 0.28 : w < 640 ? 0.38 : w < 768 ? 0.5 : w < 1024 ? 0.75 : 1; };
+    const hmult = () => { const w = window.innerWidth; const ip = w < 480 ? 352 : w < 640 ? 416 : w < 768 ? 448 : w < 1024 ? 544 : 608; const av = window.innerHeight * 0.7; return av >= ip ? 1 : av / ip; };
+    const cfg = (slot) => { if (needs) return FAN[slot]; const c = total >> 1; const dist = total > 1 ? (slot - c) / c : 0; const ad = Math.abs(dist); return { rot: dist * 21, scale: 1 - 0.2244 * ad * ad, x: dist * 30, y: ad * ad * 7.3, z: 10 - Math.abs(slot - c) }; };
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    gsap.set(cards, { xPercent: -50, yPercent: -50 });
+    let center = needs ? HALF : (total >> 1);
+    let animating = false, entered = false, dir = null, prevVis = new Set(), entries = [], activeSlot = null, leaveTimer = null;
+    const dots = Array.from(document.querySelectorAll('#dfm-fan-dots .dfm-fan-dot'));
+    const visMap = () => { const m = new Map(); if (!needs) { cards.forEach((_, i) => m.set(i, i)); return m; } for (let s = 0; s < MAX; s++) { m.set(((center + s - HALF) % total + total) % total, s); } return m; };
+    const updateDots = () => { dots.forEach((d, i) => d.classList.toggle('active', i === center)); };
+    const centerSlot = () => entries.length >> 1;
+    const hover = (hs) => {
+      const m = mult(), hm = hmult(), cs = centerSlot();
+      entries.forEach(({ el, slot }) => {
+        const b = cfg(slot); let tx = b.x * m, ty = b.y * hm, tr = b.rot, ts = b.scale, dl = 0;
+        if (hs !== null) {
+          const dist = Math.abs(slot - hs); dl = dist * 0.02;
+          if (slot === hs) { ty -= 2.5 * hm; ts *= 1.08; }
+          else { const nz = cs > 0 ? (slot - cs) / cs : 0; const ps = 8 * (1 - Math.abs(nz)) * (1 + 0.2 * Math.max(0, 3 - dist));
+            if (slot < hs) { tx -= ps * m; tr -= 3 / (dist + 1); } else { tx += ps * m; tr += 3 / (dist + 1); } }
+        } else { dl = Math.abs(slot - cs) * 0.02; }
+        gsap.to(el, { x: tx + 'rem', y: ty + 'rem', rotation: tr, scale: ts, duration: 0.5, delay: dl, ease: 'elastic.out(1,.75)', overwrite: 'auto' });
+        gsap.set(el, { zIndex: b.z });
+      });
+    };
+    const layout = () => {
+      const vmap = visMap(); const m = mult(), hm = hmult(); const first = !entered;
+      if (first) animating = true;
+      let done = 0; const vc = vmap.size; const fin = () => { if (++done >= vc) { animating = false; if (first) entered = true; } };
+      cards.forEach((card, ci) => {
+        const slot = vmap.get(ci); const was = prevVis.has(ci);
+        if (slot !== undefined) {
+          const c = cfg(slot); const tgt = { x: (c.x * m) + 'rem', y: (c.y * hm) + 'rem', rotation: c.rot, scale: c.scale, opacity: 1, zIndex: c.z };
+          if (reduce) { gsap.set(card, tgt); fin(); }
+          else if (first) { gsap.set(card, { x: 0, y: (12 * hm) + 'rem', rotation: 0, scale: 0.5, opacity: 0 }); gsap.to(card, Object.assign({}, tgt, { duration: 1.2, ease: 'elastic.out(1.05,.78)', delay: 0.15 + slot * 0.06, onComplete: fin })); }
+          else if (!was) { const ex = dir === 'right' ? 40 : -40; gsap.set(card, { x: ex + 'rem', y: (c.y * hm) + 'rem', rotation: dir === 'right' ? 30 : -30, scale: 0.5, opacity: 0 }); gsap.to(card, Object.assign({}, tgt, { duration: 0.6, ease: 'power2.out', onComplete: fin })); }
+          else { gsap.to(card, Object.assign({}, tgt, { duration: 0.5, ease: 'power2.out', onComplete: fin })); }
+        } else if (was) { const ex = dir === 'right' ? -40 : 40; gsap.to(card, { x: ex + 'rem', opacity: 0, scale: 0.5, rotation: dir === 'right' ? -30 : 30, duration: 0.4, ease: 'power2.in', zIndex: 0 }); }
+        else if (first) { gsap.set(card, { opacity: 0, scale: 0.3, x: 0, y: 0, zIndex: 0 }); }
+      });
+      prevVis = new Set(vmap.keys());
+      entries = []; cards.forEach((el, i) => { const s = vmap.get(i); if (s !== undefined) entries.push({ el, slot: s }); }); entries.sort((a, b) => a.slot - b.slot);
+      updateDots();
+    };
+    const cycle = (d) => { if (animating || !needs) return; dir = d; center = d === 'right' ? (center + 1) % total : (center - 1 + total) % total; layout(); };
+    cards.forEach((el) => { el.addEventListener('mouseenter', () => { if (animating) return; const e = entries.find((x) => x.el === el); if (!e) return; if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; } if (activeSlot !== e.slot) { activeSlot = e.slot; hover(e.slot); } }); });
+    wrap.addEventListener('mouseleave', () => { if (animating) return; if (leaveTimer) clearTimeout(leaveTimer); leaveTimer = setTimeout(() => { activeSlot = null; hover(null); }, 50); });
+    const prev = document.getElementById('dfm-fan-prev'), next = document.getElementById('dfm-fan-next');
+    if (prev) prev.addEventListener('click', () => cycle('left'));
+    if (next) next.addEventListener('click', () => cycle('right'));
+    window.addEventListener('resize', () => { if (!animating) hover(activeSlot); });
+    layout();
+  }
+
+  _initMap() {
+    if (this._map) return;
+    const el = document.getElementById('dfm-map');
+    if (!el || !window.maplibregl) { this._mapT = setTimeout(() => this._initMap(), 160); return; }
+    const LNG = -47.84351, LAT = -24.48782;
+    const map = new window.maplibregl.Map({
+      container: el,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [LNG, LAT],
+      zoom: 15,
+      attributionControl: { compact: true },
+      cooperativeGestures: true,
+    });
+    this._map = map;
+    map.addControl(new window.maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'top-right');
+    const pin = document.createElement('div');
+    pin.style.cssText = 'width:32px;height:42px;cursor:pointer;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45));';
+    pin.innerHTML = '<svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 0C7.16 0 0 7.16 0 16c0 11.2 16 26 16 26s16-14.8 16-26C32 7.16 24.84 0 16 0z" fill="hsl(36 52% 48%)" stroke="hsl(38 60% 64%)" stroke-width="1.2"/><circle cx="16" cy="16" r="6.2" fill="hsl(210 14% 11%)"/></svg>';
+    const popup = new window.maplibregl.Popup({ offset: 30, closeButton: false }).setHTML(
+      '<div style="font-family:Inter,system-ui,sans-serif;"><div style="font-family:\'Playfair Display\',Georgia,serif;font-size:1rem;font-weight:600;color:hsl(38 25% 93%);margin-bottom:3px;">Clínica Harmony</div><div style="font-size:.78rem;color:hsl(210 8% 72%);line-height:1.45;">Rua Sinfrônio Costa, 935 — Centro<br>Registro/SP</div></div>'
+    );
+    const marker = new window.maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat([LNG, LAT]).setPopup(popup).addTo(map);
+    map.on('load', () => { try { marker.togglePopup(); } catch (e) {} });
+  }
+
+  renderVals() {
+    const scrolled = this.state.scrolled;
+    const headerStyle = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:50',
+      'transition:all .5s ease',
+      scrolled ? 'padding:0.75rem 0' : 'padding:1.25rem 0',
+      'background:' + (scrolled ? 'hsl(210 14% 11% / 0.96)' : 'transparent'),
+      'backdrop-filter:' + (scrolled ? 'blur(16px)' : 'none'),
+      'border-bottom:' + (scrolled ? '1px solid hsl(210 10% 22% / 0.6)' : '1px solid transparent'),
+      scrolled ? 'box-shadow:0 12px 40px -8px hsl(210 14% 11% / 0.18)' : 'box-shadow:none',
+    ].join(';');
+
+    const onSpecEnter = (e) => {
+      const c = e.currentTarget;
+      c.style.background = 'hsl(210 12% 20%)';
+      c.style.border = '1px solid hsl(var(--gold) / 0.55)';
+      c.style.transform = 'translateY(-5px)';
+      c.style.boxShadow = '0 18px 44px -14px hsl(36 52% 48% / 0.4)';
+      const icon = c.querySelector('.dfm-spec-icon'); if (icon) { icon.style.color = 'hsl(var(--gold-light))'; icon.style.transform = 'scale(1.14)'; }
+      const title = c.querySelector('.dfm-spec-title'); if (title) title.style.color = 'hsl(var(--gold-light))';
+      const desc = c.querySelector('.dfm-spec-desc'); if (desc) { desc.style.maxHeight = '12rem'; desc.style.opacity = '1'; }
+    };
+    const onSpecLeave = (e) => {
+      const c = e.currentTarget;
+      c.style.background = 'hsl(210 12% 16%)';
+      c.style.border = '1px solid hsl(210 10% 24% / 0.8)';
+      c.style.transform = 'none';
+      c.style.boxShadow = 'none';
+      const icon = c.querySelector('.dfm-spec-icon'); if (icon) { icon.style.color = 'hsl(36 52% 48%)'; icon.style.transform = 'scale(1)'; }
+      const title = c.querySelector('.dfm-spec-title'); if (title) title.style.color = 'hsl(38 25% 93%)';
+      const desc = c.querySelector('.dfm-spec-desc'); if (desc) { desc.style.maxHeight = '0'; desc.style.opacity = '0'; }
+    };
+
+    const pillars = [
+      { icon: 'activity', title: 'Equilíbrio Hormonal', description: 'Regulação dos hormônios para energia, humor e metabolismo saudáveis.' },
+      { icon: 'apple', title: 'Nutrição Saudável', description: 'Alimentação personalizada que nutre e fortalece seu organismo.' },
+      { icon: 'leaf', title: 'Saúde Digestiva', description: 'Cuidado do intestino, nossa segunda mente e base da imunidade.' },
+      { icon: 'shield', title: 'Controle do Estresse Oxidativo', description: 'Proteção celular contra o envelhecimento precoce.' },
+      { icon: 'heart', title: 'Controle da Inflamação', description: 'Redução da inflamação silenciosa, raiz de muitas doenças crônicas.' },
+      { icon: 'wind', title: 'Eliminação de Toxinas', description: 'Desintoxicação de poluentes e substâncias nocivas do ambiente.' },
+      { icon: 'brain', title: 'Saúde Mental e Emocional', description: 'Equilíbrio entre mente e corpo para uma vida mais plena.' },
+      { icon: 'zap', title: 'Saúde Mitocondrial', description: 'Otimização da energia celular, a fonte de toda vitalidade.' },
+      { icon: 'dumbbell', title: 'Exercício Físico', description: 'Movimento como medicina para corpo e mente.' },
+      { icon: 'sparkles', title: 'Equilíbrio Imunológico', description: 'Sistema imune forte e regulado, sua defesa natural.' },
+      { icon: 'sun', title: 'Espiritualidade', description: 'Conexão consigo mesmo e propósito de vida.' },
+      { icon: 'moon', title: 'Sono de Qualidade', description: 'Descanso restaurador para regeneração completa.' },
+    ];
+
+    const specialties = [
+      { icon: 'heart', title: 'Saúde da Mulher', description: 'Avaliação nas diferentes fases da vida feminina: fertilidade, climatério, menopausa, distúrbios menstruais, TPM, endometriose e demais condições.' },
+      { icon: 'user', title: 'Saúde do Homem', description: 'Investigação de desequilíbrios hormonais, perda de peso, fadiga, disfunção erétil, apneia e distúrbios do sono, resistência insulínica, performance e saúde sexual.' },
+      { icon: 'stethoscope', title: 'Endocrinologia Clínica', description: 'Diagnóstico e manejo de doenças endócrinas, incluindo hipotireoidismo, tireoidite de Hashimoto, síndrome metabólica, obesidade, diabetes e dislipidemias.' },
+      { icon: 'scale', title: 'Emagrecimento e Composição Corporal', description: 'Estratégias para redução de gordura, preservação de massa muscular e melhora do metabolismo, com ou sem terapias farmacológicas.' },
+      { icon: 'pill', title: 'Otimização Hormonal e Implantes Subcutâneos', description: 'Estratégias individualizadas de ajuste hormonal por vias orais, transdérmicas, injetáveis ou implantes.' },
+      { icon: 'activity', title: 'Saúde Intestinal e Microbioma', description: 'Investigação para melhora da saúde intestinal, síndrome do intestino irritável, inflamação intestinal e desequilíbrios do microbioma.' },
+      { icon: 'apple', title: 'Estratégia Nutricional e Suplementação', description: 'Direcionamento nutricional e uso de suplementos para otimização metabólica e suporte clínico.' },
+      { icon: 'cannabis', title: 'Cannabis Medicinal', description: 'Prescrição e acompanhamento do uso de canabinóides para condições específicas, com critério e segurança.' },
+      { icon: 'syringe', title: 'Vitaminas e Terapias Injetáveis', description: 'Correção de deficiências e suporte metabólico quando há indicação clínica.' },
+      { icon: 'dna', title: 'Mapeamentos Genéticos e Funcionais', description: 'Exames genéticos, análises do microbioma intestinal, vaginal e urinário, avaliações imunológicas e de metabolômica, quando indicado.' },
+    ];
+
+    const qualifications = [
+      { group: 'Formação Médica', items: ['Médico pela Universidade Privada del Este', 'Pós-graduação em Endocrinologia pela Afya'] },
+      { group: 'Aperfeiçoamento em Estratégias Metabólicas e Hormonais', items: ['Pós-graduação em Medicina Integrativa pela Academia Brasileira de Medicina Funcional Integrativa', 'Curso de Extensão em Reposição Hormonal na Menopausa e Implantes Absorvíveis', 'Curso de Extensão em Programação Metabólica pela Faculdade de Saúde Avançada', 'Curso de Extensão em Nutrição Funcional pela Faculdade de Saúde Avançada'] },
+      { group: 'Formação Prévia', items: ['Graduação em Odontologia pela Universidade de Franca', 'Atualização em Endodontia pela Universidade de Franca', 'Especialização em Endodontia pela São Leopoldo Mandic – Brasília'] },
+    ];
+
+    const testimonials = [
+      { name: 'Bruna Christovam', initial: 'B', meta: 'há 7 meses · 21 avaliações', text: 'Estou fazendo acompanhamento com o Dr. Felipe há 2 meses e, pela primeira vez após passar por vários outros profissionais, tive resultados realmente excelentes! Meu intestino voltou a funcionar corretamente, meu colesterol diminuiu e consegui eliminar 6 kg de gordura em apenas 60 dias, seguindo as orientações e o cuidado do Dr. Felipe. A abordagem da medicina funcional e preventiva faz toda a diferença — ele cuida do paciente como um todo, com atenção, empatia e muito profissionalismo. É um acompanhamento que faz você se sentir acolhida, ouvida e cuidada de verdade. Só tenho a agradecer ao Dr. Felipe e à sua equipe, que são incríveis desde o agendamento até a consulta. Tudo é feito com excelência e carinho.' },
+      { name: 'Maria Lúcia', initial: 'M', meta: 'há 1 mês · 10 avaliações', text: 'Iniciei meu tratamento com o Dr. Felipe em 2025 com muitos problemas de saúde e um peso acima do esperado. Ele solicitou vários exames e me explicou as providências a serem tomadas: tive uma melhora considerável no peso, 7 quilos a menos, diminuindo minhas medidas e me possibilitando fazer minhas atividades físicas, pois tenho mais disposição e menos sonolência. Na memória tenho melhor desempenho e os meus exames estão nota 10. Obrigada, Dr. Felipe, por toda a paciência e pelo excelente atendimento humanizado. Estou muito feliz com minha nova fase de vida, super saudável. Gratidão!' },
+      { name: 'Marilaine Oliveira', initial: 'M', meta: 'há 4 meses · 5 avaliações', text: 'Minha experiência na consulta com o Dr. Felipe tem sido sempre maravilhosa em todos os sentidos. A cada dia me sinto mais acolhida; suas orientações e prescrições foram fundamentais para a transformação da minha saúde. Cheguei na primeira consulta toda inflamada, cheia de dores e queixas, e com orientações precisas e detalhadas ele logo identificou os problemas e trouxe as soluções. Só tenho a agradecer a Deus por ter encontrado um médico humano e amoroso. Vivi tempos difíceis no passado com doenças autoimunes, mas com o Dr. Felipe encontrei o caminho de volta para ter qualidade de vida. Gratidão, doutor!' },
+      { name: 'Débora Detomi', initial: 'D', meta: 'há 6 meses · 1 avaliação', text: 'Iniciei meu tratamento com o Dr. Felipe em um momento muito difícil: estava com o corpo todo inflamado, sem dormir direito e com várias vitaminas baixas. Desde o início, ele teve um olhar completo para a minha saúde, tratando tudo em conjunto, não apenas sintomas isolados. Com o acompanhamento certinho, hoje já estou me recuperando: estou mais animada, minhas olheiras melhoraram e voltei a fazer academia e corrida. Já sou outra pessoa! Sou muito grata pelo cuidado, profissionalismo e atenção. Recomendo com total confiança.' },
+      { name: 'Ana Marcia Rosa', initial: 'A', meta: 'há 2 meses · 4 avaliações', text: 'Minha experiência com o Dr. Felipe Mendonça foi incrível. Ele é um profissional dedicado e procura nos tratar de forma individual e personalizada, gerando confiança e credibilidade. Tenho me sentido muito bem com os tratamentos hormonais para a menopausa e com os suplementos indicados para minhas necessidades específicas. Sua equipe é atenciosa e prática nos atendimentos! Recomendo muito!' },
+    ];
+
+    const faqs = [
+      { question: 'Como funciona a consulta com o Dr. Felipe Mendonça?', answer: 'A consulta tem duração média de 1h30 e pode ser realizada presencialmente em Registro/SP (Clínica Harmony) ou por telemedicina. É feita uma avaliação completa do metabolismo, hormônios, histórico, hábitos e rotina. O objetivo não é apenas analisar exames isolados, mas entender como o organismo está funcionando como um todo. A partir disso, é estruturado um plano de tratamento individualizado. Um retorno após 60 dias está incluído para acompanhamento da evolução.' },
+      { question: 'Como posso agendar minha consulta?', answer: 'O agendamento é realizado diretamente pelo WhatsApp, através do botão disponível na página. A equipe orienta todo o processo e esclarece dúvidas antes da consulta.' },
+      { question: 'O Dr. Felipe atende por convênio médico?', answer: 'Não. O atendimento é particular. Essa estrutura permite mais tempo de consulta, maior profundidade na análise e um acompanhamento mais individualizado.' },
+      { question: 'Qual a diferença entre a consulta presencial e a online?', answer: 'A abordagem é a mesma em ambas. A consulta presencial permite a realização da bioimpedância corporal InBody, que complementa a avaliação com dados objetivos sobre composição corporal. Na telemedicina, todo o raciocínio clínico e direcionamento do tratamento são mantidos.' },
+      { question: 'O Dr. Felipe atende pacientes de outros países?', answer: 'Sim. O atendimento por telemedicina permite acompanhamento de pacientes no Brasil e no exterior, mantendo a mesma abordagem clínica e qualidade do atendimento.' },
+      { question: 'Como funciona o suporte após a consulta?', answer: 'Durante os 60 dias após a consulta, é possível enviar dúvidas para a equipe de atendimento. As questões são alinhadas com o Dr. Felipe e respondidas conforme a demanda, garantindo continuidade e segurança no tratamento.' },
+      { question: 'Quais exames são avaliados durante a consulta?', answer: 'Os exames são definidos de acordo com cada caso. Podem incluir exames laboratoriais, hormonais e metabólicos. Quando necessário, são solicitados exames mais avançados, como avaliação de microbioma e outros painéis específicos. O foco é solicitar apenas o que realmente contribui para entender o funcionamento do organismo.' },
+      { question: 'Os exames estão incluídos na consulta?', answer: 'Não. Os exames são realizados em laboratórios de escolha do paciente. Exames mais específicos, como microbiota, painéis genéticos e metabolômica, possuem custo à parte, conforme o laboratório responsável.' },
+      { question: 'Como são indicados exames mais avançados, como microbioma ou painéis genéticos específicos?', answer: 'Esses exames são solicitados quando agregam valor à investigação clínica. A indicação é individualizada e baseada na necessidade de aprofundar a avaliação.' },
+      { question: 'O que é a bioimpedância corporal InBody?', answer: 'É um exame que avalia a composição corporal de forma detalhada, incluindo percentual de gordura, massa muscular e taxa metabólica. Essas informações ajudam a direcionar melhor o tratamento e acompanhar a evolução com mais precisão.' },
+      { question: 'Como funciona a otimização hormonal?', answer: 'A otimização hormonal é baseada em uma análise completa de exames e sintomas, com o objetivo de restaurar o equilíbrio do organismo. O foco não está apenas em corrigir níveis isolados, mas em melhorar como o corpo responde no dia a dia. Podem ser utilizadas diferentes estratégias, como implantes hormonais, vias orais, injetáveis, transdérmicas e outras abordagens, sempre de forma individualizada e ajustadas conforme a resposta do paciente.' },
+      { question: 'O Dr. Felipe prescreve medicamentos como Tirzepatida e Semaglutida?', answer: 'Sim, quando há indicação clínica. A prescrição é feita com base em avaliação individual, exames e contexto metabólico do paciente. O uso faz parte de uma estratégia mais ampla, não sendo tratado como solução isolada.' },
+      { question: 'Quais condições podem ser tratadas com Cannabis Medicinal?', answer: 'A Cannabis Medicinal pode ser indicada para condições como dor crônica, ansiedade, insônia, epilepsia e doenças neurológicas. A prescrição é feita de forma criteriosa, com base na avaliação clínica e necessidade individual de cada paciente.' },
+      { question: 'O que são os implantes hormonais?', answer: 'São dispositivos bioabsorvíveis que liberam hormônios de forma contínua no organismo. São utilizados como uma das estratégias dentro da modulação hormonal, com indicação individualizada baseada em exames, sintomas e objetivos do paciente.' },
+      { question: 'O Dr. Felipe atende crianças ou adolescentes?', answer: 'Sim, a partir de 12 anos. Em casos específicos, é recomendado entrar em contato antes do agendamento para avaliação da indicação.' },
+      { question: 'Quais formas de pagamento são aceitas?', answer: 'São aceitos PIX, transferência bancária, cartão de crédito e PayPal para consultas internacionais.' },
+    ];
+
+    // Wheel: 12 annular segments (dark/charcoal alternating, gold dividers)
+    const cx = 300, cy = 300, Ro = 290, Ri = 130;
+    const shades = ['hsl(210 12% 17%)', 'hsl(210 14% 12%)'];
+    const rnd = (v) => Math.round(v * 100) / 100;
+    const wheelSegments = [];
+    for (let i = 0; i < 12; i++) {
+      const c = -90 + i * 30;
+      const a0 = (c - 15) * Math.PI / 180, a1 = (c + 15) * Math.PI / 180;
+      const osx = rnd(cx + Ro * Math.cos(a0)), osy = rnd(cy + Ro * Math.sin(a0));
+      const oex = rnd(cx + Ro * Math.cos(a1)), oey = rnd(cy + Ro * Math.sin(a1));
+      const iex = rnd(cx + Ri * Math.cos(a1)), iey = rnd(cy + Ri * Math.sin(a1));
+      const isx = rnd(cx + Ri * Math.cos(a0)), isy = rnd(cy + Ri * Math.sin(a0));
+      wheelSegments.push({
+        id: 'dfm-seg-' + i,
+        d: `M${osx} ${osy} A${Ro} ${Ro} 0 0 1 ${oex} ${oey} L${iex} ${iey} A${Ri} ${Ri} 0 0 0 ${isx} ${isy} Z`,
+        fill: shades[i % 2],
+      });
+    }
+
+    // Build e-mail at runtime so it never appears as a contiguous string in the
+    // served HTML (prevents Cloudflare e-mail obfuscation from hiding it).
+    const _eUser = 'drfelipesmendonca';
+    const _eDomain = 'gmail' + '.' + 'com';
+    const email = _eUser + '@' + _eDomain;
+    const emailHref = 'mailto:' + email;
+
+    // Wheel hover: light up the hovered pillar segment + its icon/label
+    const onNodeEnter = (e) => {
+      const c = e.currentTarget;
+      const ic = c.querySelector('.dfm-wheel-ic');
+      const lab = c.querySelector('span');
+      if (ic) {
+        ic.style.transform = 'scale(1.18)';
+        ic.style.background = 'var(--gradient-gold)';
+        ic.style.borderColor = 'hsl(var(--gold))';
+        ic.style.boxShadow = '0 0 24px -2px hsl(36 52% 48% / 0.75)';
+        const di = ic.querySelector('dfm-icon');
+        if (di && di.shadowRoot) { const s = di.shadowRoot.querySelector('svg'); if (s) s.style.stroke = 'hsl(var(--charcoal-deep))'; }
+      }
+      if (lab) { lab.style.color = 'hsl(var(--charcoal-deep))'; lab.style.fontWeight = '600'; }
+      const seg = document.getElementById('dfm-seg-' + c.dataset.idx);
+      if (seg) { seg.style.fill = 'url(#dfm-seg-grad)'; seg.style.filter = 'drop-shadow(0 0 9px hsl(36 52% 48% / 0.6))'; seg.setAttribute('stroke', 'hsl(36 52% 56% / 0.9)'); }
+    };
+    const onNodeLeave = (e) => {
+      const c = e.currentTarget;
+      const ic = c.querySelector('.dfm-wheel-ic');
+      const lab = c.querySelector('span');
+      if (ic) {
+        ic.style.transform = '';
+        ic.style.background = 'hsl(var(--gold) / 0.18)';
+        ic.style.borderColor = 'hsl(var(--gold) / 0.45)';
+        ic.style.boxShadow = '';
+        const di = ic.querySelector('dfm-icon');
+        if (di && di.shadowRoot) { const s = di.shadowRoot.querySelector('svg'); if (s) s.style.stroke = ''; }
+      }
+      if (lab) { lab.style.color = 'hsl(var(--dark-text))'; lab.style.fontWeight = '500'; }
+      const seg = document.getElementById('dfm-seg-' + c.dataset.idx);
+      if (seg) { seg.style.fill = seg.dataset.fill || ''; seg.style.filter = ''; seg.setAttribute('stroke', 'hsl(36 52% 48% / 0.45)'); }
+    };
+
+    const order = this.state.order;
+    const stackCards = [0, 1, 2].map((i) => {
+      const t = testimonials[order[i % order.length]];
+      return { cls: 'dfm-testi-stack-card dfm-tc-' + i, isFront: i === 0 ? 'true' : 'false', t };
+    });
+
+    const reviewOpen = this.state.openReview != null;
+    const review = reviewOpen ? testimonials[this.state.openReview] : {};
+
+    return {
+      headerStyle,
+      stackCards, onCardDown: this.onCardDown, onCardMove: this.onCardMove, onCardUp: this.onCardUp, shuffleNext: this.handleShuffle,
+      reviewOpen, review, closeReview: this.closeReview, stopEvt: this.stopEvt,
+      wheelClass: 'dfm-wheel' + (this.state.wheelIn ? ' dfm-in' : ''),
+      email, emailHref,
+      onNodeEnter, onNodeLeave,
+      onSpecEnter, onSpecLeave,
+      pillars, specialties, qualifications, testimonials, faqs,
+      wheelSegments,
+      showTestimonials: this.props.showTestimonials ?? true,
+      showFloatingWhatsapp: this.props.showFloatingWhatsapp ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>
